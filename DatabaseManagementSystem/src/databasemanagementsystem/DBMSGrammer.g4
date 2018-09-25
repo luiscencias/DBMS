@@ -100,7 +100,7 @@ integer : digit (digit)* ;
 program : (query | command)* ;
 
 // some lexer rules
-ALPHA : [azAZ]+ ; // match alphabets
-DIGIT : [09]+ ; // match digits
+ALPHA : [a-zA-Z_]+ ; // match alphabets
+DIGIT : [0-9]+ ; // match digits
 WS : [ \t\r\n]+ -> skip ; // ignore whitespace
 
