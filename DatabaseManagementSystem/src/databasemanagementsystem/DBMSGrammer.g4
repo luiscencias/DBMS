@@ -36,7 +36,7 @@ expr:
 
 atomicexpr : relationname | '('expr')' ;
 
-selection : 'select(' condition')' atomicexpr ;
+selection : 'select' '(' condition')' atomicexpr ;
 
 condition : conjunction ('||' conjunction )* ;
 
@@ -52,11 +52,11 @@ attributename : identifier;
 
 literal : '"' (alpha | digit)* '"' | (digit)* ;
 
-projection : 'project(' attributelist')' atomicexpr ;
+projection : 'project' '(' attributelist')' atomicexpr ;
 
 attributelist : attributename (',' attributename )* ;
 
-renaming : 'rename(' attributelist')' atomicexpr ;
+renaming : 'rename' '(' attributelist')' atomicexpr ;
 
 union : atomicexpr '+' atomicexpr ;
 
@@ -89,17 +89,17 @@ exitcmd : 'EXIT' ;
 
 showcmd : 'SHOW' atomicexpr ;
 
-createcmd : 'CREATE TABLE' relationname '('typedattributelist') PRIMARY KEY ('attributelist')' ;
+createcmd : 'CREATE TABLE' relationname '('typedattributelist') PRIMARY KEY' '('attributelist')' ;
 
 updatecmd : 'UPDATE' relationname 'SET' attributename '=' literal (',' attributename '=' literal)* 'WHERE' condition ;
 
-insertcmd : 'INSERT INTO' relationname 'VALUES FROM ('literal (',' literal)*')' | 'INSERT INTO' relationname 'VALUES FROM RELATION' expr ;
+insertcmd : 'INSERT INTO' relationname 'VALUES FROM' '('literal (',' literal)*')' | 'INSERT INTO' relationname 'VALUES FROM RELATION' expr ;
 
 deletecmd : 'DELETE FROM' relationname 'WHERE' condition ;
 
 typedattributelist : attributename type (',' attributename type )* ;
 
-type : 'VARCHAR ('integer')' | 'INTEGER' ;
+type : ('VARCHAR' '('integer')') | ('INTEGER') ;
 
 integer : digit (digit)* ;
 

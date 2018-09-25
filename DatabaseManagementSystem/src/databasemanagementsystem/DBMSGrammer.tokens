@@ -42,7 +42,7 @@ WS=40
 ';'=2
 '('=3
 ')'=4
-'select('=5
+'select'=5
 '||'=6
 '&&'=7
 '=='=8
@@ -52,9 +52,9 @@ WS=40
 '<='=12
 '>='=13
 '"'=14
-'project('=15
+'project'=15
 ','=16
-'rename('=17
+'rename'=17
 '+'=18
 '-'=19
 '*'=20
@@ -64,14 +64,14 @@ WS=40
 'EXIT'=24
 'SHOW'=25
 'CREATE TABLE'=26
-') PRIMARY KEY ('=27
+') PRIMARY KEY'=27
 'UPDATE'=28
 'SET'=29
 '='=30
 'WHERE'=31
 'INSERT INTO'=32
-'VALUES FROM ('=33
+'VALUES FROM'=33
 'VALUES FROM RELATION'=34
 'DELETE FROM'=35
-'VARCHAR ('=36
+'VARCHAR'=36
 'INTEGER'=37
