@@ -3,6 +3,12 @@
  ******************************************************/
 grammar DBMSGrammer;
 
+/* Compiling grammar:
+$ antlr4 DBMSGrammer.g4
+$ javac DBMSGrammer*.java -cp /usr/local/lib/antlr-4.7.1-complete.jar
+$ echo "query" | grun DBMSGrammer program -tree
+*/
+
 // Monoline comment about a parser rule
 
 /* 
