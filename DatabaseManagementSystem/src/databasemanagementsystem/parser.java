@@ -12,35 +12,59 @@ import java.lang.String;
 import java.lang.Character;
 import static java.lang.System.out;
 
-public class parser{
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
 
+public class parser{
+        
+        /* To compile and run: 
+        javac -cp "antlr-4.7.1-complete.jar" *.java
+        java -cp ".:antlr-4.7.1-complete.jar"
+        */
         public static void main(String args[]) throws IOException {
                 String ANSI_RESET = "\u001B[0m";
                 String ANSI_GREEN = "\u001B[32m";
                 String ANSI_RED = "\u001B[31m";
+                
                 Scanner scanner = new Scanner(System.in);
                 System.out.println("Parsing...");
                 String fLine;
+                
+                PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
+                
                 int count = 0;
                 while(scanner.hasNext()){
                         fLine = scanner.nextLine();
                         if(fLine.trim().length() > 0){
-                                System.out.print("Line ");
                                 System.out.print(count++);
-                                System.out.print(" is ");
-                                boolean parse = true; /// Process input here
+                                String validity = "";
+                                boolean parse = isValidLine(fLine); /// Process input here
                                 if(parse){
-                                        System.out.print(ANSI_GREEN);
-                                        System.out.print("VALID");
+                                    validity = "VALID";
                                 }
                                 else{
-                                        System.out.print(ANSI_RED);
-                                        System.out.print("INVALID");
+                                    validity = "INVALID";
                                 }
-                                System.out.println(ANSI_RESET);
+                                                                  
+                                writer.println("Line " + count + " is " + validity);
                         }
                 }
+                writer.close();
 
+        }
+        
+        public static boolean isValidLine(String line) {
+            CharStream charStream = CharStreams.fromString(line);
+            DBMSGrammarLexer lexer = new DBMSGrammarLexer(charStream);
+            CommonTokenStream commonTokenStream = new CommonTokenStream(lexer);
+            DBMSGrammarParser parser = new DBMSGrammarParser(commonTokenStream);
+            
+            ParseTree parseTree = parser.program();
+            int numErrors = parser.getNumberOfSyntaxErrors();
+            
+            return numErrors == 0;
         }
 
 }
