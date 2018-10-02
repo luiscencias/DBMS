@@ -1,7 +1,21 @@
+/**
+ * Database.java
+ * Created by Nic Kristiansson
+ * For CSCE-315 Project-2 Group 54
+ *
+ * Handles database, realtion, attribute, and literal creation and access.
+ **/
+
 import java.io.*;
 import java.util.*;
 import java.lang.*;
 
+
+/** 
+ * Database class:
+ * Contains a list of relations.
+ * Effectively acts as the view during runtime.
+ **/
 public class Database{
 	
 	public String name;
@@ -16,6 +30,7 @@ public class Database{
 		relations.add(r);
 	}
 	
+	// Deletes a relation by name.
 	public void delRelation(String relation_name){
 		for(int k = 0; k < relations.size(); k++){
 			if(relations.get(k).name == relation_name){
@@ -25,6 +40,7 @@ public class Database{
 		}
 	}
 	
+	// Gets a relation's index by name.
 	public int getRelationIndex(String n){
 		try{
 			for(int k = 0; k < relations.size(); k++){
@@ -32,6 +48,7 @@ public class Database{
 					return k;
 				}
 			}
+			// Throw if no relation n exists in the Database.
 			throw new InvalidDBException("NO SUCH RELATION");
 		}
 		catch(InvalidDBException e){
@@ -40,50 +57,7 @@ public class Database{
 		return -1;
 	}
 	
-	public static void main(String args[]){
-		
-		System.out.println("\nJust a test of some of the Database class functions");
-		
-		Database data = new Database("data");
-		
-		Attribute num = new Attribute("num",0);
-		Attribute chara = new Attribute("chara",1);
-		Attribute word = new Attribute("word",5);
-		
-		Attribute[] atts = {num,chara,word};
-		String[] prim = {num.name};
-		Relation rel = new Relation("Rel", atts, prim);
-		
-		for(int k = 0; k < 10; k++){
-			Literal[] tuple;
-			if(k < 5){
-				tuple = new Literal[3];
-			}
-			else{
-				tuple = new Literal[2];
-			}
-			tuple[0] = new Literal(num,Integer.toString(k));
-			tuple[1] = new Literal(chara,Integer.toString(k+5));
-			if(k < 5){
-				tuple[2] = new Literal(word,Integer.toString((int)Math.pow(k,k)));
-			}
-			rel.addRow(tuple);
-		}
-		data.addRelation(rel);
-		Attribute att = new Attribute("att",25);
-		Attribute[] att2 = {att};
-		String[] prim2 = {att.name};
-		Relation rel2 = new Relation("Rel2", att2, prim2);
-		for(int k = 0; k < 3; k++){
-			Literal[] tuple = new Literal[1];
-			tuple[0] = new Literal(att,Integer.toString(k*k+k));
-			rel2.addRow(tuple);
-		}
-		data.addRelation(rel2);
-		
-		data.testPrint();
-	}
-	
+	// Print's information about the Database for diagnositc purposes.
 	public void testPrint(){
 		System.out.print("|Database: " + name+"\n");
 		for(int k = 0; k < relations.size(); k++){
@@ -95,6 +69,10 @@ public class Database{
 	
 }
 
+/** 
+ * Relation class:
+ * Contains a list of realtional attributes, the primary key, and the literals of the relaiton.
+ **/
 class Relation{
 	
 	public String name;
@@ -116,6 +94,7 @@ class Relation{
 					primaryKey.add(orderedAttributes.get(k));
 				}
 				else{
+					// Throw if primary key does not match the ordered attributes in either name or size.
 					throw new InvalidDBException("INVALID PRIMARY KEY");
 				}
 			}
@@ -125,10 +104,12 @@ class Relation{
 		}
 	}
 	
+	// Adds tuple of Literals to the Relation.
 	public void addRow(Literal[] tuple){
 		ArrayList<Literal> rTemp = new ArrayList();
 		try{
 			if(tuple.length < primaryKey.size()){
+				// Throw if there are not enough elements for the primary key.
 				throw new InvalidDBException("INSEFFICENT PRIMARY KEY PARAMETERS");
 			}
 			for(int k = 0; k < tuple.length; k++){
@@ -137,6 +118,7 @@ class Relation{
 				}
 				else{
 					if(k < primaryKey.size()){
+						// Throw if there are not enough elements for the primary key.
 						throw new InvalidDBException("INSEFFICENT PRIMARY KEY PARAMETERS");
 					}
 				}
@@ -149,6 +131,7 @@ class Relation{
 
 	}
 	
+	// Print's information about the Relation for diagnositc purposes.
 	public void testPrint(){
 		System.out.print("#Relation: " + name+"\n  ");
 		for(int k = 0; k < orderedAttributes.size(); k++){
@@ -169,6 +152,13 @@ class Relation{
 	
 }
 
+/** 
+ * Attribute class:
+ * Contains the domain of the attribute;
+ * Domain type classification:
+ *	- Domain = 0: Type = INTEGER
+ *	- Domain = n: Type = VARCHAR(n)
+ **/
 class Attribute{
 	
 	public int domain; // 0 = INTEGER, n>0 = VARCHAR size n 
@@ -179,6 +169,7 @@ class Attribute{
 		domain = d;
 	}
 	
+	// Print's information about the Attribute for diagnositc purposes.
 	public void testPrint(){
 		System.out.print("|Attribute: " + name);
 		if(domain > 0){
@@ -190,6 +181,10 @@ class Attribute{
 	}
 }
 
+/** 
+ * Literal class:
+ * Contains the attribute type and a String representation of the literal.
+ **/
 class Literal{
 	
 	public Attribute attribute;
@@ -198,6 +193,7 @@ class Literal{
 	public Literal(Attribute a, String l){
 		try{
 			attribute = new Attribute(a.name,a.domain);
+			// Check type of attribute. (see Attribute class)
 			if(attribute.domain > 0){
 				if(attribute.domain < l.length()){
 					literal = l.substring(0,attribute.domain);
@@ -207,6 +203,7 @@ class Literal{
 				}
 			}
 			else{
+				// Throws error if l is not integer-able.
 				int lInt = Integer.parseInt(l);
 				literal = Integer.toString(lInt);
 			}
@@ -216,12 +213,14 @@ class Literal{
 		}
 	}
 	
+	// Print's information about the Literal for diagnositc purposes.
 	public void testPrint(){
 		System.out.print("|Literal: " + literal + " Type: ");
 		attribute.testPrint();
 	}
 }
 
+// Custom exception class
 class InvalidDBException extends Exception{
 
   public InvalidDBException(String message){
