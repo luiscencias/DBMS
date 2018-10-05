@@ -425,7 +425,7 @@ public class DBMSGrammarBaseListener implements DBMSGrammarListener {
 	 */
 	@Override public void enterProgram(DBMSGrammarParser.ProgramContext ctx) { }
 	/**
-	 * {@inheritDoc}
+	 * {@inheritDoc}1
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */

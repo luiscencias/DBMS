@@ -40,6 +40,7 @@ public class DatabaseManagementSystem {
                String fLine;
                
                PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
+               Database dab = new Database("test database");
                
                int count = 0;
                while(scanner.hasNext()){

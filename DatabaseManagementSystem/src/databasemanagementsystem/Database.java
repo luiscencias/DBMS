@@ -10,7 +10,6 @@ import java.io.*;
 import java.util.*;
 import java.lang.*;
 
-
 /** 
  * Database class:
  * Contains a list of relations.
@@ -38,6 +37,10 @@ public class Database{
 				break;
 			}
 		}
+	}
+	
+	public Relation getRelation(String n){
+		return relations.get(getRelationIndex(n));
 	}
 	
 	// Gets a relation's index by name.
@@ -90,7 +93,7 @@ class Relation{
 		}
 		try{
 			for(int k = 0; k < primary.length; k++){
-				if(orderedAttributes.get(k).name == primary[k]){
+				if(orderedAttributes.get(k).name.equals(primary[k])){
 					primaryKey.add(orderedAttributes.get(k));
 				}
 				else{
@@ -113,7 +116,7 @@ class Relation{
 				throw new InvalidDBException("INSEFFICENT PRIMARY KEY PARAMETERS");
 			}
 			for(int k = 0; k < tuple.length; k++){
-				if(tuple[k].attribute.name == orderedAttributes.get(k).name){
+				if(tuple[k].attribute.name.equals(orderedAttributes.get(k).name)){
 					rTemp.add(tuple[k]);
 				}
 				else{
@@ -128,7 +131,6 @@ class Relation{
 		catch(InvalidDBException e){
 			 System.err.println("InvalidDBException: " + e.getMessage());
 		}
-
 	}
 	
 	// Print's information about the Relation for diagnositc purposes.
@@ -149,7 +151,6 @@ class Relation{
 		}
 		System.out.println("");
 	}
-	
 }
 
 /** 
