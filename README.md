@@ -16,4 +16,4 @@ To run:
 java -cp ".:antlr-4.7.1-complete.jar" DBMSEngine
 
 To test the queries there is a toggle feature in the main of DBMSEngine.java. Simply change the test variables to 1 to test each query. To test the commands simply change the
-testCommands variable to 1 to test all commands at once. 
+testCommands variable to 1 to test all commands at once EXCEPT DELTE COMMAND must turn testCommands off and turn testDeleteCOmmand on.

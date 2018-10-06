@@ -31,7 +31,35 @@ import org.antlr.v4.runtime.ANTLRInputStream;
    public static DiskHandler diskHandler;
    
    public static void selectionQuery(String relationName, String lOperand, String rOperand, String operator) {
+     // check if relation exist in database
+     if (view.getRelationIndex(relationName) == -1) {
+       System.out.println("InvalidDBException: Relation Does not Exist");
+       return;
+     }
      
+     ArrayList<ArrayList<Literal>> matchedRows = computeCondition(relationName, lOperand, operator, rOperand);
+     
+     ArrayList<Attribute> attributes = new ArrayList();
+     
+     // add the attributes to the list 
+     for(int i =0; i < matchedRows.get(0).size(); i++) {
+       attributes.add(matchedRows.get(0).get(i).attribute);
+     }
+     
+     // if the first attribute is !!! then the attributes didnt match the relation
+     if(attributes.get(0).name.equals("!!!")) {
+       System.out.println("InvalidDBException: attributes did not match any in the relation \n");
+       return;
+     }
+     
+     Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
+     Relation selectRelation = new Relation("select", attributeArray);
+     
+     selectRelation.rows = matchedRows;
+     
+     /* testing code: delete later */
+     view.addRelation(selectRelation);
+     System.out.println("Selection Successful! \n");
    }
    
    // Return the number of pairs with equal 
@@ -568,18 +596,34 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        //given by the 3 strings
 	   
 	   /* Still needs to be implemented*/
-    
+     // check if relation exist in database
+     if (view.getRelationIndex(relationName) == -1) {
+       System.out.println("InvalidDBException: Relation Does not Exist");
+       return;
+     }
+     
+     selectionQuery(relationName, leftOp, RightOP, op);
+     
+     differenceQuery(relationName, "select");
+     
+     Relation newRel = view.getRelation("diff");
+     newRel.name = relationName;
+     
+     view.delRelation(relationName);
+     view.addRelation(newRel);
+     
     }
     
-    public static void computeCondition(String relationName, String leftOp, String operator, String rightOp){
+    public static ArrayList<ArrayList<Literal>> computeCondition(String relationName, String leftOp, String operator, String rightOp){
 		//Will create a list of tuples 
 		
 		
 		//Create temporary relation from relationName
-		ArrayList<ArrayList<Literal>> validTuples;
+		ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
 		Relation tempRel = view.getRelation(relationName);
 		int leftOpType = 0;
 		int rightOpType = 0;
+		boolean addThisTuple = false;
 		//Check that both operands are valid, and assign them a type
 		//Type 1 for Integer, Type 2 for String, Type 3 for attribute-name
 		if(isInteger(leftOp) == true){
@@ -588,6 +632,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 		else
 			if (isLiteral(leftOp) == true){
 				leftOpType = 2;
+				leftOp = leftOp.substring(1,leftOp.length()-1);
 		}
 		else {
 			for (int i = 0; i < tempRel.orderedAttributes.size(); i++){
@@ -596,8 +641,10 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 					break;
 				}
 				if (i == (tempRel.orderedAttributes.size() - 1)){
-					System.out.println("Invalid left operand! aborting comparison...");
-					return;
+					ArrayList<Literal> errTuple = new ArrayList();
+					errTuple.add(new Literal(new Attribute("!!!",10),"!!!"));
+					validTuples.add(errTuple);
+					return validTuples;
 				}
 			}
 			
@@ -608,6 +655,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 		else
 			if (isLiteral(rightOp) == true){
 				rightOpType = 2;
+				rightOp = rightOp.substring(1,rightOp.length()-1);
+				
 		}
 		else {
 			for (int i = 0; i < tempRel.orderedAttributes.size(); i++){
@@ -617,26 +666,24 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 				}
 				if (i == (tempRel.orderedAttributes.size() - 1)){
 					System.out.println("Invalid right operand! aborting comparison...");
-					return;
+					ArrayList<Literal> errTuple = new ArrayList();
+					errTuple.add(new Literal(new Attribute("!!!",10),"!!!"));
+					validTuples.add(errTuple);
+					return validTuples;
 				}
 			}
 			
 		}	
 			
 		
-		for (int j = 0; j < tempRel.rows.size(); j++){
-			
-			
-			
-			
+		for (int j = 0; j < tempRel.rows.size(); j++){	
+			addThisTuple = singleComparison(leftOp, operator, rightOp, leftOpType, rightOpType, tempRel.rows.get(j));
+			if (addThisTuple == true){
+				validTuples.add(tempRel.rows.get(j));
+			}
+				
 		}
-		
-		
-		
-		
-		
-		
-		
+		return validTuples;
 	}
 	
 	public static boolean isInteger(String toCheck){
@@ -660,62 +707,105 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 	}
 	public static boolean singleComparison (String leftOp, String operator, String rightOp, int leftOpType, int rightOpType, ArrayList<Literal> tupleToCheck){
 		//Perform a comparison on an individual tuple
+		int leftNum = 0;
+		int rightNum = 0;
 		if(leftOpType != 3 && rightOpType !=3 && leftOpType != rightOpType){
+			
 			return false;
 		}
-		int operationType = 0;
-		/* Integer to determine what operation type it is, which correspond to the following:
-			1: Integer x Integer
-			2: Integer x AttributeName
-			3: AttributeName x Integer
-			4: String x String
-			5: String x AttributeName
-			6: Attributename x String
-			7: Attributename x Attributename
-			If operationType > 3, the "<", ">", "<=", ">=" operators will return false
-		*/
-		switch (leftOpType){
-			case 1:
-			//if it is an integer
-				if(rightOpType == 1) {operationType = 1;}
-				if(rightOpType == 3) {operationType = 2;}
-			break;
-			case 2:
-				if(rightOpType == 2) {operationType = 4;}
-				if(rightOpType == 3) {operationType = 5;}
-			//if it is a string literal
-			break;
-			case 3:
-				if(rightOpType == 1) {operationType = 3;}
-				if(rightOpType == 2) {operationType = 6;}
-				if(rightOpType == 3) {operationType = 7;}
-			//if it is an attribute name
+		
+		
+		if (leftOpType == 3) {
+			for (int i = 0; i < tupleToCheck.size(); i++){
+				if (leftOp.equals(tupleToCheck.get(i).attribute.name))
+				{
+					if (tupleToCheck.get(i).attribute.domain > 0){
+						leftOpType = 2;
+					}
+					else {
+						leftOpType = 1;
+					}
+					leftOp = tupleToCheck.get(i).literal;
+					
+					
+				}
+			}
+		}
+				
+			if (rightOpType == 3) {
+			for (int i = 0; i < tupleToCheck.size(); i++){
+				if (rightOp.equals(tupleToCheck.get(i).attribute.name))
+				{
+					if (tupleToCheck.get(i).attribute.domain > 0){
+						rightOpType = 2;
+					}
+					else {
+						rightOpType = 1;
+					}
+					rightOp = tupleToCheck.get(i).literal;
+					
+					
+				}
+			}
 			
 		}
+		
+		
+		if (rightOpType != leftOpType) {
+			return false;
+		}
+		
+		
 		
 		
 		switch (operator){
 			case "==":
-					
+					if (leftOp.equals(rightOp)){ return true;}
 				break;
 			case "!=":	
-			
+					if (!(leftOp.equals(rightOp))){return true;}
 				break;
 				
 			case "<":
+				if(leftOpType == 2){return false;}
+				
+				try {
+					leftNum = Integer.parseInt(leftOp.trim());
+					rightNum = Integer.parseInt(rightOp.trim());
+					}
+				catch (NumberFormatException nfe){}
+				if(leftNum < rightNum){return true;}
 				
 				break;
 			
 			case ">":
+				if(leftOpType == 2){return false;}
+				try {
+					leftNum = Integer.parseInt(leftOp.trim());
+					rightNum = Integer.parseInt(rightOp.trim());
+					}
+				catch (NumberFormatException nfe){}
+				if(leftNum > rightNum){return true;}
 				break;
 				
 			case "<=":
+				if(leftOpType == 2){return false;}
+				try {
+					leftNum = Integer.parseInt(leftOp.trim());
+					rightNum = Integer.parseInt(rightOp.trim());
+					}
+				catch (NumberFormatException nfe){}
+				if(leftNum <= rightNum){return true;}
 				break;
-				
 			case ">=":
+				if(leftOpType == 2){return false;}
+				try {
+					leftNum = Integer.parseInt(leftOp.trim());
+					rightNum = Integer.parseInt(rightOp.trim());
+					}
+				catch (NumberFormatException nfe){}
+				if(leftNum < rightNum){return true;}
 				break;
-			
-			
 			
 			
 			
@@ -733,7 +823,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      int testProjection = 0;
      int testRenaming = 0;
      
-     int testCommands = 1;
+     int testCommands = 0;
      
      int testOpenCommand = 0;
      int testWriteCommand = 0;
@@ -744,7 +834,9 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      int testUpdateMultiple = 0;
      int testInsertFromList = 0;
      int testInsertFromRelation = 0;
-     int testDeleteCommand = 0;
+     
+     
+     int testDeleteCommand = 1;
      
      /* Union Test */
      if(testUnion == 1) {
@@ -866,7 +958,40 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      if(testSelection == 1) {
+       System.out.println("Testing Selection... \n");
        
+       Attribute[] samples = {new Attribute("big",10), new Attribute("large",10)};
+       String[] samplePrimaries = {"big", "large"};
+       
+       Relation relOne = new Relation("One", samples, samplePrimaries);
+       Relation relTwo = new Relation("Two", samples, samplePrimaries);
+       
+       Literal[] sampleOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       Literal[] sampleTwo = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       Literal[] sampleThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+       Literal[] sampleFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("large",10),"canine")};
+       Literal[] sampleFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("large",10),"buzzer")}; 
+       Literal[] sampleSix = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       Literal[] sampleSeven = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+       
+       relOne.addRow(sampleOne);
+       relOne.addRow(sampleTwo);
+       relOne.addRow(sampleThree);
+       relOne.addRow(sampleFour);
+       relOne.addRow(sampleFive);
+       relOne.addRow(sampleSix);
+       relOne.addRow(sampleSeven);
+       
+       view.addRelation(relOne);
+       
+       System.out.println("Testing select big == \"boss\" \n");
+       selectionQuery(relOne.name, "big", "\"boss\"", "==");
+       view.testPrint();
+       
+       System.out.println("Testing select big != \"bee\" \n");
+       view.delRelation("select");
+       selectionQuery(relOne.name, "big", "\"bee\"", "!=");
+       view.testPrint();
      }
      
      if(testProjection == 1) {
@@ -1048,10 +1173,43 @@ import org.antlr.v4.runtime.ANTLRInputStream;
          
        }
        
-       if(testDeleteCommand == 1) {
-         
-       }
+     }
+     
+     if(testDeleteCommand == 1) {
+       System.out.println("Testing Delete Command... \n");
        
+       Attribute[] samples = {new Attribute("big",10), new Attribute("large",10)};
+       String[] samplePrimaries = {"big", "large"};
+       
+       Relation relOne = new Relation("One", samples, samplePrimaries);
+       Relation relTwo = new Relation("Two", samples, samplePrimaries);
+       
+       Literal[] sampleOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       Literal[] sampleTwo = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       Literal[] sampleThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+       Literal[] sampleFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("large",10),"canine")};
+       Literal[] sampleFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("large",10),"buzzer")}; 
+       Literal[] sampleSix = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       Literal[] sampleSeven = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+       
+       relOne.addRow(sampleOne);
+       relOne.addRow(sampleTwo);
+       relOne.addRow(sampleThree);
+       relOne.addRow(sampleFour);
+       relOne.addRow(sampleFive);
+       relOne.addRow(sampleSix);
+       relOne.addRow(sampleSeven);
+       
+       view.addRelation(relOne);
+       
+       System.out.println("Testing select big == \"boss\" \n");
+       deleteCommand(relOne.name, "big", "==", "\"boss\"");
+       view.testPrint();
+       
+       System.out.println("Testing select big != \"bee\" \n");
+       view.delRelation("select");
+       deleteCommand(relOne.name, "big", "!=", "\"bee\"");
+       view.testPrint();
      }
      
    }
