@@ -26,14 +26,18 @@ public class Database{
 	}
 	
 	public void addRelation(Relation r){
-		relations.add(r);
+		if(getRelationIndex(r.name) != -1) {
+			System.out.println("InvalidDBException: Relation with name " + r.name + " already exists");
+		} else {
+			relations.add(r);
+		}
 	}
 	
 	// Deletes a relation by name.
 	public void delRelation(String relation_name){
 		for(int k = 0; k < relations.size(); k++){
 			if(relations.get(k).name == relation_name){
-				relations.remove(0);
+				relations.remove(k);
 				break;
 			}
 		}
@@ -47,7 +51,7 @@ public class Database{
 	public int getRelationIndex(String n){
 		try{
 			for(int k = 0; k < relations.size(); k++){
-				if(relations.get(k).name == n){
+				if(relations.get(k).name.equals(n)){
 					return k;
 				}
 			}
@@ -55,7 +59,7 @@ public class Database{
 			throw new InvalidDBException("NO SUCH RELATION");
 		}
 		catch(InvalidDBException e){
-			 System.err.println("InvalidDBException: " + e.getMessage());
+			 //System.err.println("InvalidDBException: " + e.getMessage());
 		}
 		return -1;
 	}
@@ -107,6 +111,16 @@ class Relation{
 		}
 	}
 	
+	public Relation(String n, Attribute[] atts){
+		name = n;
+		orderedAttributes = new ArrayList();
+		primaryKey = new ArrayList();
+		rows = new ArrayList();
+		for(int k = 0; k < atts.length; k++){
+			orderedAttributes.add(atts[k]);
+		}
+	}
+	
 	// Adds tuple of Literals to the Relation.
 	public void addRow(Literal[] tuple){
 		ArrayList<Literal> rTemp = new ArrayList();
@@ -131,6 +145,10 @@ class Relation{
 		catch(InvalidDBException e){
 			 System.err.println("InvalidDBException: " + e.getMessage());
 		}
+	}
+	
+	public void delRow(int index) {
+		rows.remove(index);
 	}
 	
 	// Print's information about the Relation for diagnositc purposes.
@@ -216,8 +234,7 @@ class Literal{
 	
 	// Print's information about the Literal for diagnositc purposes.
 	public void testPrint(){
-		System.out.print("|Literal: " + literal + " Type: ");
-		attribute.testPrint();
+		System.out.print(" " + literal + " | ");
 	}
 }
 
