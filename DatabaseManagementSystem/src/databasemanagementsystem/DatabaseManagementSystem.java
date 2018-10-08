@@ -69,7 +69,7 @@ public class DatabaseManagementSystem {
                               
                                 // Walk it and attach our listener
                                 ParseTreeWalker walker = new ParseTreeWalker();
-                                ProgramListener listener = new ProgramListener();
+                                DBMSListener listener = new DBMSListener();
                                 walker.walk(listener, DBMSGrammarProgramContext);
                             }
                             else{
@@ -94,30 +94,11 @@ public class DatabaseManagementSystem {
             int numErrors = parser.getNumberOfSyntaxErrors();
             
             /* get rid of after testing */
-            System.out.println(parseTree.getText());
-            System.out.println("\n" + parseTree.toStringTree(parser) + "\n");
+           // System.out.println(parseTree.getText());
+           // System.out.println("\n" + parseTree.toStringTree(parser) + "\n");
             
            
             return numErrors == 0;
-        }
-        
-        public static class ProgramListener extends DBMSGrammarBaseListener {
-          
-          @Override
-          public void enterProgram(DBMSGrammarParser.ProgramContext ctx) {
-            /* do nothing just let it go to query or command */
-          }
-          
-          @Override
-          public void enterCommand(DBMSGrammarParser.CommandContext ctx) {
-            
-          }
-          
-          @Override
-          public void enterQuery(DBMSGrammarParser.QueryContext ctx) {
-            
-          }
-          
         }
     
 }

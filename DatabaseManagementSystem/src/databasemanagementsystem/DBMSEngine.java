@@ -2,6 +2,8 @@
  * This file was created by Murtaza Hakimi of team 54 in Dr. Daugherity's 
  * CSCE 315 Class 
  * 
+ *Utilized some code from https://stackoverflow.com/questions/26699089/infix-to-postfix-using-stacks-java
+ *For conversion of condition statements from infix to postfix notation - Luis
  */
 import java.io.*;
 import java.util.*;
@@ -19,6 +21,22 @@ import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.ANTLRInputStream;
+
+        /*
+        TO DO: FOR CONDITIONS:
+            IMPLEMENT INFIX TO POSTFIX CONVERSION
+            IMPLEMENT POSTFIX COMPUTATION INTO END RESULT
+            CHANGE ARGUMENTS OF SELECTION, DELETION, AND UPDATE TO REFLECT NEW PARSETREE ARGUMENT
+               FOR QUERIES:
+            IMPLEMENT A WAY OF DETERMINING WHEN THE RESULT OF A QUERY WILL BE ASSIGNED TO A UNIQUE RELATION NAME (The name to the left of <-)
+            I'M THINKING A METHOD CALLED QUERY OR FINALQUERY THAT TAKES THE WANTED NEW RELATION NAME, AS WELL AS A STRING INDICATING WHAT TYPE OF QUERY TO PERFORM
+            WITH A SWITH CASE STRUCTURE THAT WILL PERFORM THE APPROPRIATE QUERY AND THEN CHANGE THE NAME OF THE QUERY SPECIFIC RELATION TO THE ONE WANTED
+               FOR LISTENER:
+            USE FILE DBMSLISTENER.JAVA
+            NEED TO IMPLEMENT ALL THE OVERRIDE METHODS TO PASS APPROPRIATE INPUT TO CORRESPONDING COMMANDS/QUERIES
+               
+        */
+
 
 
 /**
@@ -540,29 +558,89 @@ import org.antlr.v4.runtime.ANTLRInputStream;
         //If parameters are incomplete, print a message accordingly
     }
     
-    public static void updateSingleAttribute(String relationName, Attribute toUpdate, Literal toChange, String leftOperand, String operation, String RightOperation) {
+    public static void updateCommand(String relationName, Attribute[] toUpdate, Literal[] toChange, String leftOp, String op, String rightOp) {
         //Updates the given relation, with only 1 attribute to be set to a literal
        //Updates tuples that satisfy a condition given
-	   
-	   
-	   
-	   
-	   /* Still needs to be implemented*/
+	    if (view.getRelationIndex(relationName) == -1) {
+       System.out.println("InvalidDBException: Relation Does not Exist");
+       return;
+        }
+
+        for (int j = 0; j < toUpdate.length; j++){
+            for (int i = 0; i < view.getRelation(relationName).orderedAttributes.size(); i ++)
+            {
+                if (toUpdate[j].name.equals(view.getRelation(relationName).orderedAttributes.get(i).name)){
+                    System.out.println(toUpdate[j].name);
+                    System.out.println(view.getRelation(relationName).orderedAttributes.get(i).name);
+                    break;
+                }   
+                if (i == (view.getRelation(relationName).orderedAttributes.size() - 1)){
+                System.out.println("One or more attributes given to update do not exist in this relation!");
+                return;
+            }
+            }
+            
+        }
+        
+        ArrayList<ArrayList<Literal>> conditionMetRows = computeCondition(relationName, leftOp, op, rightOp);
+        
+        
+        /*
+           This absolute monstrosity of 4 nested for loops is a lot less scary than it looks, as the innermost 2 loops will only happen occasionally
+           In addition, this setup allows for a single updateCommand method that will work with either a single attribute to change, or more
+           Outermost loop iterates through the arraylist of rows that satisfied the condition
+           Second loop iterates through the given relation to find the row that corresponds to the current row in the arraylist 
+           Third loop iterates through the array of attributes to change (usually 1, can be more)
+           Fourth loop iterates through the columns of the row, until it finds the one that corresponds to the attribute being changed
+           Finally, it changes the value of the literal at that point
+        
+        */
+        
+        for (int i = 0; i < conditionMetRows.size(); i++){
+            for (int l = 0; l < view.getRelation(relationName).rows.size(); l++){
+                if(areRowsEqual(conditionMetRows.get(i),view.getRelation(relationName).rows.get(l)) == true){
+                    for (int j = 0; j < toUpdate.length; j++){
+                            for (int k = 0; k < view.getRelation(relationName).orderedAttributes.size(); k++)
+                            {
+                                if(toUpdate[j].name.equals(view.getRelation(relationName).orderedAttributes.get(k).name)){
+                                    view.getRelation(relationName).rows.get(l).get(k).literal = toChange[j].literal;
+                                }
+                            }
+                    }
+                }
+            }
+        }
+        
+        
 	}
 	
 	
-    
-    public static void updateMultipleAttributes(String relationName, Attribute[] toUpdate, Literal[] toChange, String leftOperand, String operation, String rightOperand){
-        //Updates the given relation, with a list of attributes to be set to their corresponding value in a list of literals
-		
-		/* Still needs to be implemented*/
-    }
     public static void insertFromList(String relationName, Literal[] litList) {
         //Inserts into a given existing relation from a list of literals
+        String literalName = "";
+        
         if (view.getRelationIndex(relationName)> -1){
-            int relIndex = view.getRelationIndex(relationName);
-            view.relations.get(relIndex).addRow(litList);
-        }
+             int relIndex = view.getRelationIndex(relationName);
+             if (litList.length >= view.relations.get(relIndex).orderedAttributes.size()){
+                for (int i = 0; i < view.relations.get(relIndex).orderedAttributes.size(); i++){
+                    literalName = litList[i].literal;    
+                    if (view.relations.get(relIndex).orderedAttributes.get(i).domain > 1)
+                    {
+                        if (view.relations.get(relIndex).orderedAttributes.get(i).domain < literalName.length()) {   
+                            litList[i].literal = literalName.substring(0,view.relations.get(relIndex).orderedAttributes.get(i).domain - 1);
+                        }
+                    }
+
+                    litList[i].attribute = view.relations.get(relIndex).orderedAttributes.get(i);
+
+                }
+
+                view.relations.get(relIndex).addRow(litList);
+             }
+             else {
+                 System.out.println("Not enough literals in list to add to table!");
+             }
+            }
         else {
             System.out.println("Relation " + relationName + " does not exist in database!");
         }
@@ -574,17 +652,20 @@ import org.antlr.v4.runtime.ANTLRInputStream;
         //first confirm that both relations exist within the database
         if (view.getRelationIndex(relationName)> -1 && view.getRelationIndex(otherRelation) > -1){
             
-        //once confirmed 
-            int relIndex = view.getRelationIndex(relationName);
-            int otherRelIndex = view.getRelationIndex(otherRelation);
-            int otherRelRows = view.relations.get(otherRelIndex).rows.size();
-            for (int i = 0; i < otherRelRows; i++){
-        //Iterate once for every row in relation whose values we are drawing from        
-                view.relations.get(relIndex).addRow(view.relations.get(otherRelIndex).rows.get(i).toArray(new Literal[view.relations.get(otherRelIndex).rows.get(i).size()]));
-        //This very long line of code simply adds a row to the relation we are inserting into
-        //The row consists of a copy of the i'th row of the other relation (we need to convert from arraylist to array, hence the long line)
-            }
-               
+            //once confirmed 
+                int relIndex = view.getRelationIndex(relationName);
+                int otherRelIndex = view.getRelationIndex(otherRelation);
+                int otherRelRows = view.relations.get(otherRelIndex).rows.size();
+                if (unionCompatible(view.relations.get(relIndex),view.relations.get(otherRelIndex)) == true){
+                    for (int i = 0; i < otherRelRows; i++){
+                //Iterate once for every row in relation whose values we are drawing from        
+                        view.relations.get(relIndex).addRow(view.relations.get(otherRelIndex).rows.get(i).toArray(new Literal[view.relations.get(otherRelIndex).rows.get(i).size()]));
+                //This very long line of code simply adds a row to the relation we are inserting into
+                //The row consists of a copy of the i'th row of the other relation (we need to convert from arraylist to array, hence the long line)
+                    }
+                } else {
+                    System.out.println("Both relations exist in this database, but they are not union compatible!");
+                }
         }
         else {
             System.out.println("one or more of the relations in this Insert command do not exist in database!");
@@ -594,8 +675,6 @@ import org.antlr.v4.runtime.ANTLRInputStream;
     public static void deleteCommand(String relationName, String leftOp, String op, String RightOP) {
        //Deletes tuples from the relation given, taking out the tuples that satisfy the condition
        //given by the 3 strings
-	   
-	   /* Still needs to be implemented*/
      // check if relation exist in database
      if (view.getRelationIndex(relationName) == -1) {
        System.out.println("InvalidDBException: Relation Does not Exist");
@@ -606,12 +685,105 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      
      differenceQuery(relationName, "select");
      
+     view.delRelation("select");
+     view.delRelation(relationName);
      Relation newRel = view.getRelation("diff");
      newRel.name = relationName;
      
-     view.delRelation(relationName);
-     view.addRelation(newRel);
      
+    }
+    
+    public static ArrayList<ArrayList<Literal>> conditTopEnd (String relationName, ParseTree conditionTree){
+        
+        /* 
+        The purpose of this method is to take a relation name and a condition parse tree
+        And traverse the parse tree to obtain an infix list of condition operands and operators,
+        Then utilize a stack structure to convert the list into postfix
+        And once the list is in postfix notation, evaluate it using the computeCondition method
+        ending up with a single ArrayList of rows that contains every row in the relation that
+        satisfies all conditions given
+        */
+        ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
+        
+        Stack<String> infixStack = new Stack<String>();
+        Stack<String> postfixStack = new Stack<String>();
+        
+        List<ParseTree> children = getChildList(conditionTree);
+        
+        List<String> conditionStrings = getLeafNodeList (children);
+        //Get a list of strings that is made up of all the leaf nodes
+        
+        //For loop should transform the infix list to a postfix list we can then evaluate
+        for (int i = 0; i < conditionStrings.size(); i++){
+            
+            
+            
+        }
+        ArrayList<Attribute> attributes = new ArrayList();
+     
+            // add the attributes to the list 
+             for(int i =0; i < view.getRelation(relationName).orderedAttributes.size(); i++) {
+                 attributes.add(view.getRelation(relationName).orderedAttributes.get(i));
+                 }
+        
+       Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
+       
+        Relation conditionRel = new Relation("conditCompute",attributeArray);
+        
+       
+        
+        
+        return validTuples;
+    }
+    public static boolean hasLowerPrecedence(String s1, String s2){
+        
+        
+        return false;
+    }
+    public static boolean isOperator(String s){
+        switch (s){
+            case "==":
+            case "<=":
+            case ">=":
+            case ">":
+            case "<":
+            case "!=":
+            case "(":
+            case ")":
+            case "||":
+            case "&&":
+                return true;
+            default:
+                break;
+        }
+        
+        return false;
+    }
+    
+    public static List<String> getLeafNodeList (List<ParseTree> toIterate) {
+        List<String> leafNodes = new LinkedList<String>();
+        List<ParseTree> recursChild = null;
+        boolean add = false;
+        for (ParseTree child:toIterate){
+             if (child.getChildCount() == 0) {
+                 leafNodes.add(child.getText());
+             }
+            
+            if (child.getChildCount() > 0) {
+                recursChild = getChildList(child);
+                add = leafNodes.addAll(getLeafNodeList(recursChild));
+            }
+             
+        }
+       return leafNodes;
+    }
+    public static List<ParseTree> getChildList (ParseTree toList){
+        List<ParseTree> childList = new LinkedList<ParseTree>();
+        for (int i = 0; i < toList.getChildCount(); i ++){
+            childList.add(toList.getChild(i));
+        }
+        
+        return childList;
     }
     
     public static ArrayList<ArrayList<Literal>> computeCondition(String relationName, String leftOp, String operator, String rightOp){
@@ -713,8 +885,12 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 			
 			return false;
 		}
+		//Return false if the operand types are incompatible
 		
-		
+                
+                
+                //Find what kind of literal this attribute corresponds to
+                //If this function was called at all, it's because this attribute exists in the table 
 		if (leftOpType == 3) {
 			for (int i = 0; i < tupleToCheck.size(); i++){
 				if (leftOp.equals(tupleToCheck.get(i).attribute.name))
@@ -727,11 +903,12 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 					}
 					leftOp = tupleToCheck.get(i).literal;
 					
-					
+		//Assign the operand a type depending on the attribute that was found			
 				}
 			}
 		}
-				
+		//Find what kind of literal this attribute corresponds to
+                //If this function was called at all, it's because this attribute exists in the table 		
 			if (rightOpType == 3) {
 			for (int i = 0; i < tupleToCheck.size(); i++){
 				if (rightOp.equals(tupleToCheck.get(i).attribute.name))
@@ -744,20 +921,26 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 					}
 					rightOp = tupleToCheck.get(i).literal;
 					
-					
+		//Assign the operand a type depending on the attribute that was found						
 				}
 			}
 			
 		}
 		
-		
+		//Now check that the deciphered operand types are still compatible
+                //return false if they are not
 		if (rightOpType != leftOpType) {
 			return false;
 		}
 		
 		
+		//Now that both operands have been translated to literals, and it is
+                //confirmed that they are compatible, switch case structure performs
+                //the actual comparison based on the utilized operator
 		
-		
+                
+                //Each case after == and != will check if either operator is a string, and return false if it is
+                
 		switch (operator){
 			case "==":
 					if (leftOp.equals(rightOp)){ return true;}
@@ -822,21 +1005,16 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      int testSelection = 0;
      int testProjection = 0;
      int testRenaming = 0;
-     
      int testCommands = 0;
-     
      int testOpenCommand = 0;
      int testWriteCommand = 0;
      int testCloseCommand = 0;
      int testShowCommand = 0;
      int testCreateCommand = 0;
-     int testUpdateSingle = 0;
-     int testUpdateMultiple = 0;
+     int testUpdateCommand = 1;
      int testInsertFromList = 0;
      int testInsertFromRelation = 0;
-     
-     
-     int testDeleteCommand = 1;
+     int testDeleteCommand = 0;
      
      /* Union Test */
      if(testUnion == 1) {
@@ -1113,6 +1291,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        insertFromList("two", sampleThree);
        insertFromList("two", sampleFour);
        insertFromList("two", sampleFive);
+       Literal[] sampleSix = {new Literal(new Attribute("big",8),"hippopotamus"), new Literal(new Attribute("large",10),"buzzer")};
+       insertFromList("two", sampleSix);
        
        System.out.println("Testing show command... \n");
        showCommand("two");
@@ -1136,6 +1316,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 		     
        System.out.println("Testing show command... \n");
 		   showCommand("two");
+     }
        
        if(testOpenCommand == 1) {
          
@@ -1157,23 +1338,47 @@ import org.antlr.v4.runtime.ANTLRInputStream;
          
        }
        
-       if(testUpdateSingle == 1) {
-         
+       if(testUpdateCommand == 1) {
+           Attribute[] updateSamples = {new Attribute("big",10), new Attribute("weight",0)};
+       String[] updatePrimaries = {"big", "weight"};
+       Relation updateRel = new Relation("updateMe", updateSamples, updatePrimaries );
+       Literal[] upOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("weight",0),"2")};
+       Literal[] upTwo = {new Literal(new Attribute("big",10),"tree"), new Literal(new Attribute("weight",0),"6")};
+       Literal[] upThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("weight",0),"3")};
+       Literal[] upFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("weight",0),"7")};
+       Literal[] upFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("weight",0),"2")};
+       
+       Literal[] updatedValues = {new Literal(new Attribute("big",10),"UPDATED"), new Literal(new Attribute("weight",0),"20")};
+       
+       updateRel.addRow(upOne);
+       updateRel.addRow(upTwo);
+       updateRel.addRow(upThree);
+       updateRel.addRow(upFour);
+       updateRel.addRow(upFive);
+       
+       view.addRelation(updateRel);
+       view.testPrint();
+       
+       updateCommand("updateMe",updateSamples, updatedValues, "big", "!=", "\"boss\"");
+       
+       view.testPrint();
+       
        }
        
-       if(testUpdateMultiple == 1) {
          
-       }
+       
        
        if(testInsertFromList == 1) {
-         
+           
+           
+             
        }
        
        if(testInsertFromRelation == 1) {
          
        }
        
-     }
+     
      
      if(testDeleteCommand == 1) {
        System.out.println("Testing Delete Command... \n");
