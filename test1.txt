@@ -1,0 +1,17 @@
+CREATE TABLE One (big VARCHAR(10), large VARCHAR(10)) PRIMARY KEY (big, large);
+CREATE TABLE Two (big VARCHAR(10), large VARCHAR(10)) PRIMARY KEY (big, large);
+CREATE TABLE Three (gloop VARCHAR(10), froop VARCHAR(10)) PRIMARY KEY (gloop, froop);
+
+INSERT INTO One VALUES FROM ("boss","boy");
+INSERT INTO One VALUES FROM ("boss","boy");
+INSERT INTO One VALUES FROM ("ball","sphere");
+
+INSERT INTO Two VALUES FROM ("dog","canine");
+INSERT INTO Two VALUES FROM ("bee","buzzer");
+
+INSERT INTO Three VALUES FROM ("boss","boy");
+INSERT INTO Three VALUES FROM ("ball","sphere");
+
+SHOW One;
+SHOW Two;
+SHOW Three;
