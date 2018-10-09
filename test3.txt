@@ -1,0 +1,19 @@
+CREATE TABLE matrix (m1 INTEGER, m2 INTEGER, oops INTEGER, m3 INTEGER, m4 INTEGER) PRIMARY KEY (m1);
+
+identity <- matrix;
+
+INSERT INTO identity VALUES FROM (1,0,33,0,0);
+INSERT INTO identity VALUES FROM (0,1,23,0,0);
+INSERT INTO identity VALUES FROM (0,0,88,0,0);
+INSERT INTO identity VALUES FROM (0,0,67,1,0);
+INSERT INTO identity VALUES FROM (0,0,94,0,1);
+
+SHOW identity;
+
+bad <- project(oops) identity;
+
+SHOW bad;
+
+identity <- project(oops) identity;
+
+SHOW identity;
