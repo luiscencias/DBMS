@@ -1,9 +1,9 @@
-CREATE TABLE fyomamma ( timesfed INTEGER, slur VARCHAR(20)) PRIMARY KEY (timesfucked);
+CREATE TABLE fyomamma ( timesfed INTEGER, slur VARCHAR(20)) PRIMARY KEY (timesfed);
 
 INSERT INTO fyomamma VALUES FROM (10, "the chocolate chip");
 
 SHOW fyomamma;
 
-yourmotherisaveryniceperson <- rename(compliments,cookietype);
+yourmotherisaveryniceperson <- rename(compliments,cookietype) fyomamma;
 
 SHOW yourmotherisaveryniceperson;
