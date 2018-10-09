@@ -140,6 +140,18 @@ class Relation{
 					}
 				}
 			}
+			
+			/* TODO: check for truncation ******************************************/
+			// for(int i = 0; i < rTemp.size(); i++) {
+			// 	int sizeAllowed = rTemp.get(i).attribute.domain;
+			// 	if(sizeAllowed > 0) {
+			// 		Literal temp = new Literal(rTemp.get(i).attribute, rTemp.get(i).literal.substring(0, sizeAllowed));
+			// 		temp.testPrint();
+			// 		rTemp.set(i, temp);
+			// 	}
+			// }
+			/**********************************************************************/
+			
 			rows.add(rTemp);
 		}
 		catch(InvalidDBException e){

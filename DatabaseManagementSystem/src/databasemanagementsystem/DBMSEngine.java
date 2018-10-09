@@ -58,12 +58,13 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        relTo.name = relationNameTo;
        view.addRelation(relTo);
        return;
+     } else {
+       Relation relTo = view.getRelation(relationNameFrom);
+       relTo.name = relationNameTo;
+       view.delRelation(relationNameTo);
+       view.addRelation(relTo);
      }
-     
-     Relation relTo = view.getRelation(relationNameFrom);
-     relTo.name = relationNameTo;
-     view.delRelation(relationNameTo);
-     view.addRelation(relTo);
+    
    }
    
    public static void selectionQuery(String relationName, String lOperand, String rOperand, String operator) {
@@ -229,17 +230,22 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      /* 2. Union operations can only be performed if each column in A has the 
      * same type to its corresponding column in B. */
      for(int i = 0; i < lRelation.orderedAttributes.size(); i++) {
-       if(!(lRelation.orderedAttributes.get(i).domain == rRelation.orderedAttributes.get(i).domain)) {
-         return false;
-       }
+       int firstTrue = 0;
        
        if(!(lRelation.orderedAttributes.get(i).domain > 0 && rRelation.orderedAttributes.get(i).domain > 0)) {
          return false;
+       }
+       
+       firstTrue = 1;
+       
+       if(!(lRelation.orderedAttributes.get(i).domain == rRelation.orderedAttributes.get(i).domain)) {
+         if(firstTrue !=1) { return false; }
        }
      }
      
      return true;
    }
+   
    
    public static void unionQuery(String lRelationName, String rRelationName) {
      // combines all the rows in two relations 
