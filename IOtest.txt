@@ -1,0 +1,33 @@
+CREATE TABLE stands (name VARCHAR(32), user VARCHAR(32)) PRIMARY KEY (name);
+
+INSERT INTO stands VALUES FROM ("Star Platinum","Jotaro");
+INSERT INTO stands VALUES FROM ("Hermit Purple","Joseph");
+INSERT INTO stands VALUES FROM ("Heirophant Green","Kakyoin");
+INSERT INTO stands VALUES FROM ("Magicians Red","Avdol");
+INSERT INTO stands VALUES FROM ("Silver Chariot","Polnareff");
+
+WRITE stands;
+
+SHOW stands;
+
+morestands <- stands;
+
+CLOSE stands;
+
+INSERT INTO morestands VALUES FROM ("The World","DIO");
+
+WRITE morestands;
+
+SHOW morestands;
+
+OPEN ora;
+
+SHOW ora;
+
+CREATE TABLE fin (msg VARCHAR(64)) PRIMARY KEY (msg);
+
+INSERT INTO fin VALUES FROM ("You thought it was the end of the file, but it was me, DIO!");
+
+EXIT;
+
+SHOW fin;
