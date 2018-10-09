@@ -46,7 +46,25 @@ import org.antlr.v4.runtime.ANTLRInputStream;
  public class DBMSEngine {
    
    public static Database view = new Database("view");
+   public static Database queue = new Database("queue");
    public static DiskHandler diskHandler;
+   
+   public static void assignmentCommand(String relationNameTo, String relationNameFrom) {
+     Relation relFrom = view.getRelation(relationNameFrom);
+     
+     // check if relation exist in database
+     if (view.getRelationIndex(relationNameTo) == -1) {
+       Relation relTo = view.getRelation(relationNameFrom);
+       relTo.name = relationNameTo;
+       view.addRelation(relTo);
+       return;
+     }
+     
+     Relation relTo = view.getRelation(relationNameFrom);
+     relTo.name = relationNameTo;
+     view.delRelation(relationNameTo);
+     view.addRelation(relTo);
+   }
    
    public static void selectionQuery(String relationName, String lOperand, String rOperand, String operator) {
      // check if relation exist in database
@@ -71,12 +89,13 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
-     Relation selectRelation = new Relation("select", attributeArray);
+     String name = Integer.toString(queue.relations.size());
+     Relation selectRelation = new Relation(name, attributeArray);
      
      selectRelation.rows = matchedRows;
      
      /* testing code: delete later */
-     view.addRelation(selectRelation);
+     queue.addRelation(selectRelation);
      System.out.println("Selection Successful! \n");
    }
    
@@ -138,7 +157,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
-     Relation projTo = new Relation("proj", attributeArray);
+     String name = Integer.toString(queue.relations.size());
+     Relation projTo = new Relation(name, attributeArray);
      
      // copy data over to the projected relation
      for(int i=0; i < projFrom.rows.size(); i++) {
@@ -157,103 +177,44 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      /* testing code: delete later */
-     view.addRelation(projTo);
+     queue.addRelation(projTo);
      System.out.println("Projection Successful! \n");
      
    }
    
-   public static void renamingQuery(String relationBeingRenamed, String attributesFromRelation, ArrayList<String> attributeNames) {
-     // rename attribute names from a relation
-     
-     // check if relation exist in database
-     if (view.getRelationIndex(attributesFromRelation) == -1) {
-       System.out.println("InvalidDBException: Relation Does not Exist");
-       return;
-     }
-     
-     // check if target exists but is different from source
-     if (view.getRelationIndex(attributesFromRelation) != -1 && view.getRelationIndex(relationBeingRenamed) != -1 && !(relationBeingRenamed.equals(attributesFromRelation))) {
-       System.out.println("InvalidDBException: Target relation can't be different from source if both exist");
-       return;
-     }
-     
-     Relation relationFrom = view.getRelation(attributesFromRelation);
-     
-     // check to make sure there are the same number of attributes being renamed
-     if(attributeNames.size() > relationFrom.orderedAttributes.size()) {
-       System.out.println("InvalidDBException: Renaming more attributes then exist in relation");
-       return;
-     }
-     
-     ArrayList<Attribute> attributes = new ArrayList();
-     
-     /* 3. The attribute names always come from the right operand */
-     for(int i=0; i < relationFrom.orderedAttributes.size(); i++) {
-       attributes.add(relationFrom.orderedAttributes.get(i));
-     }
-     
-     // check if renaming and creating new relation, or renaming original relationName
-     if(view.getRelationIndex(relationBeingRenamed) == -1) {
-       Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
-       Relation relationTo = new Relation(relationBeingRenamed, attributeArray);
-       
-       // also need to copy the data into the new relation
-       for(int i=0; i < relationFrom.rows.size(); i++) {
-         relationTo.addRow(relationFrom.rows.get(i).toArray(new Literal[relationFrom.rows.get(i).size()]));
+   public static void renamingQuery(String relationBeingRenamed, ArrayList<String> attributeNames) {
+       if (view.getRelationIndex(relationBeingRenamed) == -1) {
+           System.out.println("InvalidDBException: Relation Does not Exist");
+           return;
        }
        
-       // rename the attributes
-       for(int i=0; i < attributeNames.size(); i++) {
-         Attribute temp = new Attribute(attributeNames.get(i), attributes.get(i).domain);
-         attributes.set(i, temp);
-       }
-       relationTo.orderedAttributes = attributes;
-       
-       // rename teh attributes in each literal
-       for(int i=0; i < relationTo.rows.size(); i++) {
-         ArrayList<Literal> literalsTemp = new ArrayList();
-         
-         for(int j=0; j < relationTo.rows.get(i).size(); j++) {
-           Literal temp = new Literal(attributes.get(j), relationFrom.rows.get(i).get(j).literal);
-           literalsTemp.add(temp);
-         }
-         relationTo.rows.set(i, literalsTemp);
-         literalsTemp = new ArrayList();
+       if (view.getRelation(relationBeingRenamed).orderedAttributes.size() < attributeNames.size()) {
+           System.out.println("InvalidDBException: Invalid number of relations");
+           return;
        }
        
-       // add relation to database
-       view.addRelation(relationTo);
+       String name = Integer.toString(queue.relations.size());       
+       Relation rename = view.getRelation(relationBeingRenamed);
+       rename.name = name;
+       
+       for(int k = 0; k < attributeNames.size(); k++){
+           rename.orderedAttributes.get(k).name = attributeNames.get(k);
+           if(k < rename.primaryKey.size()){
+               rename.primaryKey.get(k).name = attributeNames.get(k);
+           }
+           for(int j = 0; j < attributeNames.size(); j++){
+               try{
+                   rename.rows.get(k).get(k).attribute.name = attributeNames.get(k);                    
+               }
+               catch(NullPointerException e){
+       
+               }
+           }
+       }
+       
+       queue.addRelation(rename);
+       queue.testPrint();
        System.out.println("Renaming Successful! \n");
-     } else {
-       //rename attributes of existing relation
-       for(int i=0; i < attributeNames.size(); i++) {
-         Attribute temp = new Attribute(attributeNames.get(i), relationFrom.orderedAttributes.get(i).domain);
-         relationFrom.orderedAttributes.set(i, temp);
-       }
-       
-       // rename the attributes variable
-       for(int i=0; i < attributeNames.size(); i++) {
-         Attribute temp = new Attribute(attributeNames.get(i), attributes.get(i).domain);
-         attributes.set(i, temp);
-       }
-       
-       // rename the primary keys
-       ArrayList<Attribute> newPrimaryKeys = attributes;
-       relationFrom.primaryKey = newPrimaryKeys;
-       
-       // rename teh attributes in each literal
-       for(int i=0; i < relationFrom.rows.size(); i++) {
-         ArrayList<Literal> literalsTemp = new ArrayList();
-         
-         for(int j=0; j < relationFrom.rows.get(i).size(); j++) {
-           Literal temp = new Literal(attributes.get(j), relationFrom.rows.get(i).get(j).literal);
-           literalsTemp.add(temp);
-         }
-         relationFrom.rows.set(i, literalsTemp);
-         literalsTemp = new ArrayList();
-       }
-       System.out.println("Renaming Successful! \n");
-     }
    }
    
    public static boolean unionCompatible(Relation lRelation, Relation rRelation) {
@@ -318,7 +279,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      
      /* create new relation (what to name it? what about primary keys?) */
      Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
-     Relation unionRelation = new Relation("union", attributeArray);
+     String name = Integer.toString(queue.relations.size());
+     Relation unionRelation = new Relation(name, attributeArray);
      
      int totalNumRows = lRelation.rows.size() + rRelation.rows.size();
      
@@ -332,7 +294,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      
      /* testing code: delete later */
      // TODO: check for existing union and delete it before adding new one
-     view.addRelation(unionRelation);
+     queue.addRelation(unionRelation);
      System.out.println("Union Successful! \n");
      
    }
@@ -389,7 +351,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      
      /* create new relation (what to name it? what about primary keys?) */
      Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
-     Relation diffRelation = new Relation("diff", attributeArray);
+     String name = Integer.toString(queue.relations.size());
+     Relation diffRelation = new Relation(name, attributeArray);
      
      int count = 0;
      
@@ -418,7 +381,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      /* testing code: delete later */
-     view.addRelation(diffRelation);
+     queue.addRelation(diffRelation);
      System.out.println("Difference Successful! \n");
      
    }
@@ -447,7 +410,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
-     Relation prodRelation = new Relation("prod", attributeArray);
+     String name = Integer.toString(queue.relations.size());
+     Relation prodRelation = new Relation(name, attributeArray);
      
      Literal[] rowToAdd = new Literal[attributeArray.length];
      for(int k=0; k < lRelation.rows.size(); k++) {
@@ -471,7 +435,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      /* testing code: delete later */
-     view.addRelation(prodRelation);
+     queue.addRelation(prodRelation);
      System.out.println("Product Successful! \n");
      
    }
@@ -683,11 +647,19 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      
      selectionQuery(relationName, leftOp, RightOP, op);
      
-     differenceQuery(relationName, "select");
+     String name = queue.relations.get(queue.relations.size()-1).name;
+     Relation select = queue.getRelation(name);
+     view.addRelation(select);
+     queue.delRelation(name);
      
-     view.delRelation("select");
+     differenceQuery(relationName, name);
+     String nameDIFF = queue.relations.get(queue.relations.size()-1).name;
+     
+     view.delRelation(name);
      view.delRelation(relationName);
-     Relation newRel = view.getRelation("diff");
+     Relation newRel = queue.getRelation(nameDIFF);
+     queue.delRelation(nameDIFF);
+     view.addRelation(newRel);
      newRel.name = relationName;
      
      
@@ -1004,14 +976,15 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      int testProduct = 0;
      int testSelection = 0;
      int testProjection = 0;
-     int testRenaming = 0;
+     int testRenaming = 1;
+     
      int testCommands = 0;
      int testOpenCommand = 0;
      int testWriteCommand = 0;
      int testCloseCommand = 0;
      int testShowCommand = 0;
      int testCreateCommand = 0;
-     int testUpdateCommand = 1;
+     int testUpdateCommand = 0;
      int testInsertFromList = 0;
      int testInsertFromRelation = 0;
      int testDeleteCommand = 0;
@@ -1061,14 +1034,14 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        view.addRelation(relThree);
        view.testPrint();
        
-       view.delRelation("union");
+       view.delRelation("!!!union");
        unionQuery(relOne.name, relThree.name);
        view.testPrint();
        
        
        System.out.println("Testing w/ one relation being empty... \n");
        Relation relFour = new Relation("Four", samples, samplePrimaries);
-       view.delRelation("union");
+       view.delRelation("!!!union");
        view.addRelation(relFour);
        unionQuery(relTwo.name, relFour.name);
        view.testPrint();
@@ -1167,7 +1140,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        view.testPrint();
        
        System.out.println("Testing select big != \"bee\" \n");
-       view.delRelation("select");
+       view.delRelation("!!!select");
        selectionQuery(relOne.name, "big", "\"bee\"", "!=");
        view.testPrint();
      }
@@ -1202,13 +1175,13 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        
        System.out.println("Testing Case 2 Projection... \n");
        attributeNames.set(1, "large");
-       view.delRelation("proj");
+       view.delRelation("!!!proj");
        projectionQuery(relTwo.name, attributeNames);
        view.testPrint();
        
        System.out.println("Testing bad attribute names passed... \n");
        attributeNames.set(0, "hello");
-       view.delRelation("proj");
+       view.delRelation("!!!proj");
        projectionQuery(relTwo.name, attributeNames);
        view.testPrint();
      }
@@ -1244,17 +1217,17 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        attributeNames.add("bob");
        attributeNames.add("gunge");
        
-       renamingQuery(relOne.name, relTwo.name, attributeNames);
-       renamingQuery(relOne.name, relOne.name, attributeNames);
+       renamingQuery(relTwo.name, attributeNames);
+       renamingQuery(relOne.name, attributeNames);
        view.testPrint();
        
        attributeNames.add("hello");
-       renamingQuery(relOne.name, relOne.name, attributeNames);
+       renamingQuery(relOne.name, attributeNames);
        
        
        System.out.println("Rename to new relation... \n");
        attributeNames.remove(0);
-       renamingQuery("newRel", relOne.name, attributeNames);
+       renamingQuery(relOne.name, attributeNames);
        view.testPrint();
      }
      
@@ -1412,7 +1385,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        view.testPrint();
        
        System.out.println("Testing select big != \"bee\" \n");
-       view.delRelation("select");
+       view.delRelation("!!!select");
        deleteCommand(relOne.name, "big", "!=", "\"bee\"");
        view.testPrint();
      }

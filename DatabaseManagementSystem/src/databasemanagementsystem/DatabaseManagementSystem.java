@@ -70,6 +70,7 @@ public class DatabaseManagementSystem {
                                 // Walk it and attach our listener
                                 ParseTreeWalker walker = new ParseTreeWalker();
                                 DBMSListener listener = new DBMSListener();
+                                listener.test();
                                 walker.walk(listener, DBMSGrammarProgramContext);
                             }
                             else{
