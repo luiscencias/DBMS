@@ -19,7 +19,6 @@ SHOW standusers;
 SHOW standstats;
 
 userstats <- standusers + standstats;
-worstdevelpoment <- project(name) (select(development <= 1) userstats);
 goodvitalityandrange <- project(name) (select(vitality > 3 && range > 3) userstats);
 badstat <- select(power == 1 || speed == 1 || vitality == 1 || range == 1 || vitality == 1 || precision == 1 || development == 1) userstats;
 
