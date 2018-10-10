@@ -1,0 +1,182 @@
+CREATE TABLE stands (name VARCHAR(32), user VARCHAR(32), power INTEGER, speed INTEGER, range INTEGER, vitality INTEGER, precision INTEGER, development INTEGER) PRIMARY KEY (name);
+
+INSERT INTO stands VALUES FROM ("Star Platinum", "Jotaro", 5,5,3,5,5,5);
+INSERT INTO stands VALUES FROM ("Hermit Purple", "Joseph", 2,3,2,5,2,1);
+INSERT INTO stands VALUES FROM ("Hierophant Green", "Kakyoin", 3,4,5,4,3,2);
+INSERT INTO stands VALUES FROM ("Magicians Red", "Avdol", 4,4,3,4,3,2);
+INSERT INTO stands VALUES FROM ("Silver Chariot", "Polnareff", 3,5,3,4,4,3);
+INSERT INTO stands VALUES FROM ("The Fool", "Iggy", 4,3,2,3,2,3);
+INSERT INTO stands VALUES FROM ("The World", "DIO");
+
+WRITE stands;
+
+SHOW stands;
+
+standusers <- project(user) stands;
+standstats <- project(power,speed,range,vitality,precision,development) stands;
+
+SHOW standusers;
+SHOW standstats;
+
+userstats <- standusers + standstats;
+bestpower <- project(name) (select(power >= 5) userstats);
+worstdevelpoment <- project(name) (select(development <= 1) userstats);
+goodvitalityandrange <- project(name) (select(vitality > 3 && range > 3) userstats);
+badstat <- select(power == 1 || speed == 1 || vitality == 1 || range == 1 || vitality == 1 || precision == 1 || development == 1) userstats;
+
+SHOW bestpower;
+SHOW worstdevelpoment;
+SHOW goodvitalityandrange;
+SHOW badstat;
+
+
+CREATE TABLE fibb (val INTEGER, index INTEGER) PRIMARY KEY (val, index);
+
+INSERT INTO fibb VALUES FROM (1,0);
+INSERT INTO fibb VALUES FROM (1,1);
+INSERT INTO fibb VALUES FROM (2,2);
+INSERT INTO fibb VALUES FROM (3,3);
+INSERT INTO fibb VALUES FROM (5,4);
+INSERT INTO fibb VALUES FROM (8,5);
+INSERT INTO fibb VALUES FROM (13,6);
+INSERT INTO fibb VALUES FROM (21,7);
+INSERT INTO fibb VALUES FROM (34,8);
+INSERT INTO fibb VALUES FROM (55,9);
+INSERT INTO fibb VALUES FROM (89,10);
+
+CREATE TABLE prime (val INTEGER, index INTEGER) PRIMARY KEY (val, index);
+
+INSERT INTO prime VALUES FROM (1,0);
+INSERT INTO prime VALUES FROM (2,1);
+INSERT INTO prime VALUES FROM (3,2);
+INSERT INTO prime VALUES FROM (5,3);
+INSERT INTO prime VALUES FROM (7,4);
+INSERT INTO prime VALUES FROM (11,5);
+INSERT INTO prime VALUES FROM (13,6);
+INSERT INTO prime VALUES FROM (17,7);
+INSERT INTO prime VALUES FROM (19,8);
+INSERT INTO prime VALUES FROM (23,9);
+INSERT INTO prime VALUES FROM (29,10);
+
+CREATE TABLE fact (val INTEGER, index INTEGER) PRIMARY KEY (val, index);
+
+INSERT INTO fact VALUES FROM (1,0);
+INSERT INTO fact VALUES FROM (1,1);
+INSERT INTO fact VALUES FROM (2,2);
+INSERT INTO fact VALUES FROM (6,3);
+INSERT INTO fact VALUES FROM (24,4);
+INSERT INTO fact VALUES FROM (120,5);
+INSERT INTO fact VALUES FROM (720,6);
+INSERT INTO fact VALUES FROM (5040,7);
+INSERT INTO fact VALUES FROM (40320,8);
+INSERT INTO fact VALUES FROM (362880,9);
+INSERT INTO fact VALUES FROM (39916800,10);
+
+SHOW fibb;
+SHOW prime;
+SHOW fact;
+
+union <- prime + fibb;
+diff <- fact - fibb;
+cross <- fact * pime;
+
+SHOW union;
+SHOW diff;
+SHOW cross;
+
+superunion <- prime + (fact + fibb);
+superdiff <- (fact - fibb) - prime;
+supercross <- fact * (fibb * prime);
+
+SHOW superunion;
+SHOW superdiff;
+SHOW supercross;
+
+dud <- (prime - fibb) + (fact - fibb);
+
+SHOW dud;
+
+DELETE FROM fibb WHERE val == index;
+DELETE FROM prime WHERE (val >= 10);
+DELETE FROM fact WHERE index < 5;
+
+SHOW fibb;
+SHOW prime;
+SHOW fact;
+
+
+CREATE TABLE blrlglb ( dasdasd INTEGER, ungh VARCHAR(10)) PRIMARY KEY (dasdasd);
+
+INSERT INTO blrlglb VALUES FROM (10, "what");
+INSERT INTO blrlglb VALUES FROM (-80, "huh");
+
+SHOW blrlglb;
+
+mathishard <- rename(number,confused) blrlglb;
+
+SHOW mathishard;
+
+
+CREATE TABLE matrix (m1 INTEGER, m2 INTEGER, oops INTEGER, m3 INTEGER, m4 INTEGER) PRIMARY KEY (m1);
+
+identity <- matrix;
+
+INSERT INTO identity VALUES FROM (1,0,33,0,0);
+INSERT INTO identity VALUES FROM (0,1,23,0,0);
+INSERT INTO identity VALUES FROM (0,0,88,0,0);
+INSERT INTO identity VALUES FROM (0,0,67,1,0);
+INSERT INTO identity VALUES FROM (0,0,94,0,1);
+
+SHOW identity;
+
+bad <- project(oops) identity;
+
+SHOW bad;
+
+identity <- project(oops) identity;
+
+SHOW identity;
+
+WRITE identity;
+
+UPDATE identity SET m1 = 2, m2 = 2, m3 = 2, m4 = 2 WHERE (m1 == 1 || m2 == 1 || m3 == 1 || m4 == 1);
+
+SHOW identity;
+
+CLOSE identity;
+
+
+CREATE TABLE animals (name VARCHAR(20), kind VARCHAR(8), years INTEGER) PRIMARY KEY (name, kind);
+
+INSERT INTO animals VALUES FROM ("Joe", "cat", 4);
+INSERT INTO animals VALUES FROM ("Spot", "dog", 10);
+INSERT INTO animals VALUES FROM ("Snoopy", "dog", 3);
+INSERT INTO animals VALUES FROM ("Tweety", "bird", 1);
+INSERT INTO animals VALUES FROM ("Joe", "bird", 2);
+
+SHOW animals;
+
+dogs <- select (kind == "dog") animals;
+old_dogs <- select (age > 10) dogs;
+
+cats_or_dogs <- dogs + (select (kind == "cat") animals);
+
+CREATE TABLE species (kind VARCHAR(10)) PRIMARY KEY (kind);
+
+INSERT INTO species VALUES FROM RELATION project (kind) animals;
+
+a <- rename (aname, akind) (project (name, kind) animals);
+common_names <- project (name) (select (aname == name && akind != kind) (a * animals));
+answer <- common_names;
+
+SHOW answer;
+
+WRITE animals;
+CLOSE animals;
+
+EXIT;
+
+CREATE TABLE no (name VARCHAR(30)) PRIMARY KEY (name);
+INSERT INTO no VALUES FROM ("EXIT doesnt work");
+
+SHOW no;
