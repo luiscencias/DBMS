@@ -12,12 +12,6 @@ WRITE stands;
 
 SHOW stands;
 
-standusers <- project(user) stands;
-standstats <- project(power,speed,range,vitality,precision,development) stands;
-
-SHOW standusers;
-SHOW standstats;
-
 bestpower <- project(name) (select(power >= 5) stands);
 worstdevelpoment <- project(name) (select(development <= 1) stands);
 goodvitalityandrange <- project(name) (select(vitality > 3 && range > 3) stands);
