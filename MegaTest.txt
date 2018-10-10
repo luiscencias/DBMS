@@ -75,7 +75,7 @@ SHOW fact;
 
 union <- prime + fibb;
 diff <- fact - fibb;
-cross <- fact * pime;
+
 
 SHOW union;
 SHOW diff;
