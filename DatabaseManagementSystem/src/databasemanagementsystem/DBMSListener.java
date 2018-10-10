@@ -283,6 +283,77 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         
         ++counter;
       }
+      
+      String relName = children.get(1).getText();
+      
+      // check if relation exists
+      if(isInView(relName) != 1) {
+        System.out.println("Error in Query...");
+        return;
+      }
+      
+      Relation getInfo = engine.view.getRelation(relName);
+      
+      ArrayList<Attribute> attributeList = new ArrayList();
+      ArrayList<Literal> literalList = new ArrayList();
+      
+      String attribute = "";
+      String literal = "";
+      
+      int c = 0;
+      boolean isLiteral = false;
+      boolean passedWhere = false;
+      for (ParseTree child : children) {
+        if(c >= 3 && (c % 2) != 0 && passedWhere == false) {
+          if(child.getText().equals("WHERE")) { passedWhere = true; }
+          
+          if(isLiteral == false) {
+            attribute = child.getText();
+            isLiteral = true;
+          } else { 
+            if(child.getText().contains("\"")) {
+              literal = child.getText().replace("\"", "");
+            } else {
+              literal = child.getText();
+            }
+            
+            // build and add attribute
+            for(int i = 0; i < getInfo.orderedAttributes.size(); i++) {
+              if(getInfo.orderedAttributes.get(i).name.equals(attribute)) {
+                 attributeList.add(getInfo.orderedAttributes.get(i));
+                 System.out.println("adding: " + attribute + " " + getInfo.orderedAttributes.get(i).name + " + ");
+              }
+            }
+            
+            // build and add literal
+            literalList.add(new Literal(attributeList.get(attributeList.size()-1), literal));
+            isLiteral = false;
+          }
+
+        }
+        c++;
+      }
+      
+      Attribute[] attributeArray = attributeList.toArray(new Attribute[attributeList.size()]);
+      Literal[] literalArray = literalList.toArray(new Literal[literalList.size()]);
+      
+      /* Test: Output attributeArray DELETE IN CLEANUP */
+      for(int i = 0; i < attributeArray.length; i++) {
+        System.out.println("att: " + attributeArray[i].name + " + ");
+      }
+      
+      /* Test: Output literalArray DELETE IN CLEANUP */
+      for(int i = 0; i < literalArray.length; i++) {
+        System.out.println("lit: " + literalArray[i].literal + " + ");
+      }
+      
+      try {
+        engine.updateCommand(relName, attributeArray, literalArray, children.get(children.size()-1));
+      } catch (Exception e) {
+        System.out.println("Error in Command...\n");
+        return;
+      }
+      
     }
     
     @Override public void enterCreatecmd(DBMSGrammarParser.CreatecmdContext ctx) { 
