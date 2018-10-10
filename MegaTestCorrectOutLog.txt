@@ -1,4 +1,20 @@
-Not enough literals in list to add to table!
+
+Create Command Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+WritingCommand Successful!
+
 #Relation: stands
   |Attribute: name VARCHAR(32) |Attribute: user VARCHAR(32) |Attribute: power INTEGER |Attribute: speed INTEGER |Attribute: range INTEGER |Attribute: vitality INTEGER |Attribute: precision INTEGER |Attribute: development INTEGER
   Primary Key: |Attribute: name VARCHAR(32)
@@ -8,35 +24,107 @@ Not enough literals in list to add to table!
   Row[3]:  MagiciansRed |  Avdol |  4 |  4 |  3 |  4 |  3 |  2 |
   Row[4]:  SilverChariot |  Polnareff |  3 |  5 |  3 |  4 |  4 |  3 |
   Row[5]:  TheFool |  Iggy |  4 |  3 |  2 |  3 |  2 |  3 |
-Projection Successful!
+Selection Successful!
 
 Projection Successful!
 
-#Relation: standusers
-  |Attribute: user VARCHAR(32)
-  Primary Key:
-  Row[0]:  Jotaro |
-  Row[1]:  Joseph |
-  Row[2]:  Kakyoin |
-  Row[3]:  Avdol |
-  Row[4]:  Polnareff |
-  Row[5]:  Iggy |
-#Relation: standstats
-  |Attribute: power INTEGER |Attribute: speed INTEGER |Attribute: range INTEGER |Attribute: vitality INTEGER |Attribute: precision INTEGER |Attribute: development INTEGER
-  Primary Key:
-  Row[0]:  5 |  5 |  3 |  5 |  5 |  5 |
-  Row[1]:  2 |  3 |  2 |  5 |  2 |  1 |
-  Row[2]:  3 |  4 |  5 |  4 |  3 |  2 |
-  Row[3]:  4 |  4 |  3 |  4 |  3 |  2 |
-  Row[4]:  3 |  5 |  3 |  4 |  4 |  3 |
-  Row[5]:  4 |  3 |  2 |  3 |  2 |  3 |
-InvalidDBException: Relations are not Compatible
+Selection Successful!
+
+Projection Successful!
+
+Selection Successful!
+
+Projection Successful!
+
+Error in SelectionQuery...
+
 Error in Query...
 
-Relation bestpower does not exist in database!
-Relation worstdevelpoment does not exist in database!
-Relation goodvitalityandrange does not exist in database!
+#Relation: bestpower
+  |Attribute: name VARCHAR(32)
+  Primary Key:
+  Row[0]:  StarPlatinum |
+#Relation: worstdevelpoment
+  |Attribute: name VARCHAR(32)
+  Primary Key:
+  Row[0]:  HermitPurple |
+#Relation: goodvitalityandrange
+  |Attribute: name VARCHAR(32)
+  Primary Key:
+  Row[0]:  HierophantGreen |
 Relation badstat does not exist in database!
+Create Command Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Create Command Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Create Command Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
 #Relation: fibb
   |Attribute: val INTEGER |Attribute: index INTEGER
   Primary Key: |Attribute: val INTEGER |Attribute: index INTEGER
@@ -1706,13 +1794,23 @@ Union Successful!
   Row[31]:  34 |  8 |
   Row[32]:  55 |  9 |
   Row[33]:  89 |  10 |
-val==index
-val
-==
-index
 Selection Successful!
 
 Difference Successful!
+
+Delete Command Successful!
+
+Selection Successful!
+
+Difference Successful!
+
+Delete Command Successful!
+
+Selection Successful!
+
+Difference Successful!
+
+Delete Command Successful!
 
 #Relation: fibb
   |Attribute: val INTEGER |Attribute: index INTEGER
@@ -1727,32 +1825,26 @@ Difference Successful!
   Row[7]:  89 |  10 |
 #Relation: prime
   |Attribute: val INTEGER |Attribute: index INTEGER
-  Primary Key: |Attribute: val INTEGER |Attribute: index INTEGER
-  Row[0]:  1 |  0 |
-  Row[1]:  2 |  1 |
-  Row[2]:  3 |  2 |
-  Row[3]:  5 |  3 |
-  Row[4]:  7 |  4 |
-  Row[5]:  11 |  5 |
-  Row[6]:  13 |  6 |
-  Row[7]:  17 |  7 |
-  Row[8]:  19 |  8 |
-  Row[9]:  23 |  9 |
-  Row[10]:  29 |  10 |
+  Primary Key:
+  Row[0]:  11 |  5 |
+  Row[1]:  13 |  6 |
+  Row[2]:  17 |  7 |
+  Row[3]:  19 |  8 |
+  Row[4]:  23 |  9 |
+  Row[5]:  29 |  10 |
 #Relation: fact
   |Attribute: val INTEGER |Attribute: index INTEGER
-  Primary Key: |Attribute: val INTEGER |Attribute: index INTEGER
-  Row[0]:  1 |  0 |
-  Row[1]:  1 |  1 |
-  Row[2]:  2 |  2 |
-  Row[3]:  6 |  3 |
-  Row[4]:  24 |  4 |
-  Row[5]:  120 |  5 |
-  Row[6]:  720 |  6 |
-  Row[7]:  5040 |  7 |
-  Row[8]:  40320 |  8 |
-  Row[9]:  362880 |  9 |
-  Row[10]:  39916800 |  10 |
+  Primary Key:
+  Row[0]:  120 |  5 |
+  Row[1]:  720 |  6 |
+  Row[2]:  5040 |  7 |
+  Row[3]:  40320 |  8 |
+  Row[4]:  362880 |  9 |
+  Row[5]:  39916800 |  10 |
+Create Command Successful!
+
+Insert From List Successful!
+
 line 1:33 no viable alternative at input '-'
 Line is INVALID
 #Relation: blrlglb
@@ -1765,6 +1857,18 @@ Renaming Successful!
   |Attribute: number INTEGER |Attribute: confused VARCHAR(10)
   Primary Key:
   Row[0]:  10 |  what |
+Create Command Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
 #Relation: identity
   |Attribute: m1 INTEGER |Attribute: m2 INTEGER |Attribute: oops INTEGER |Attribute: m3 INTEGER |Attribute: m4 INTEGER
   Primary Key: |Attribute: m1 INTEGER
@@ -1785,7 +1889,6 @@ Projection Successful!
   Row[4]:  94 |
 Projection Successful!
 
-InvalidDBException: Relation with name identity already exists
 #Relation: identity
   |Attribute: oops INTEGER
   Primary Key:
@@ -1794,6 +1897,9 @@ InvalidDBException: Relation with name identity already exists
   Row[2]:  88 |
   Row[3]:  67 |
   Row[4]:  94 |
+WritingCommand Successful!
+
+One or more relation names don't match aborting command...
 #Relation: identity
   |Attribute: oops INTEGER
   Primary Key:
@@ -1802,6 +1908,22 @@ InvalidDBException: Relation with name identity already exists
   Row[2]:  88 |
   Row[3]:  67 |
   Row[4]:  94 |
+WritingCommand Successful!
+
+Close Command Successful!
+
+Create Command Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
+Insert From List Successful!
+
 #Relation: animals
   |Attribute: name VARCHAR(20) |Attribute: kind VARCHAR(8) |Attribute: years INTEGER
   Primary Key: |Attribute: name VARCHAR(20) |Attribute: kind VARCHAR(8)
@@ -1810,14 +1932,21 @@ InvalidDBException: Relation with name identity already exists
   Row[2]:  Snoopy |  dog |  3 |
   Row[3]:  Tweety |  bird |  1 |
   Row[4]:  Joe |  bird |  2 |
-
 Selection Successful!
+
+Error in SelectionQuery...
+
+Error in Query...
 
 Selection Successful!
 
 Union Successful!
 
+Create Command Successful!
+
 Projection Successful!
+
+Insert From Relation Successful!
 
 Not enough literals in list to add to table!
 Projection Successful!
@@ -1826,11 +1955,6 @@ Renaming Successful!
 
 Product Successful!
 
-#Relation: c1
-  |Attribute: aname VARCHAR(20) |Attribute: akind VARCHAR(8) |Attribute: name VARCHAR(20) |Attribute: kind VARCHAR(8) |Attribute: years INTEGER
-  Primary Key:
-  Row[0]:  Joe |  cat |  Joe |  bird |  2 |
-  Row[1]:  Joe |  bird |  Joe |  cat |  4 |
 Selection Successful!
 
 Projection Successful!
@@ -1840,3 +1964,9 @@ Projection Successful!
   Primary Key:
   Row[0]:  Joe |
   Row[1]:  Joe |
+WritingCommand Successful!
+
+WritingCommand Successful!
+
+Close Command Successful!
+
