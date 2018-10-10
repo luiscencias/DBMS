@@ -50,31 +50,40 @@ import org.antlr.v4.runtime.ANTLRInputStream;
    public static DiskHandler diskHandler;
    
    public static void assignmentCommand(String relationNameTo, String relationNameFrom) {
-     Relation relFrom = view.getRelation(relationNameFrom);
      
-     // check if relation exist in database
-     if (view.getRelationIndex(relationNameTo) == -1) {
-       Relation relTo = view.getRelation(relationNameFrom);
-       relTo.name = relationNameTo;
-       view.addRelation(relTo);
-       return;
-     } else {
-       Relation relTo = view.getRelation(relationNameFrom);
-       relTo.name = relationNameTo;
-       view.delRelation(relationNameTo);
-       view.addRelation(relTo);
-     }
+     Relation relTo = view.getRelation(relationNameFrom);
+     relTo.name = relationNameTo;
+     if (!(view.getRelationIndex(relationNameTo) == -1)) { view.delRelation(relationNameTo); }
+     view.addRelation(relTo);
+     
+     // // check if relation exist in database
+     // if (view.getRelationIndex(relationNameTo) == -1) {
+     //   Relation relTo = view.getRelation(relationNameFrom);
+     //   relTo.name = relationNameTo;
+     //   view.addRelation(relTo);
+     //   return;
+     // } else {
+     // 
+     // 
+     // 
+     //   String tempName = relationNameTo;
+     //   //view.delRelation(relationNameTo);
+     //   Relation relTo = new Relation("hello", new Attribute[0]);
+     //   relTo = view.getRelation(relationNameFrom);
+     //   relTo.name = tempName;
+     //   view.addRelation(relTo);
+     // }
     
    }
    
-   public static void selectionQuery(String relationName, String lOperand, String rOperand, String operator) {
+   public static void selectionQuery(String relationName, ParseTree conditionTree) {
      // check if relation exist in database
      if (view.getRelationIndex(relationName) == -1) {
        System.out.println("InvalidDBException: Relation Does not Exist");
        return;
      }
      
-     ArrayList<ArrayList<Literal>> matchedRows = computeCondition(relationName, lOperand, operator, rOperand);
+     ArrayList<ArrayList<Literal>> matchedRows = conditTopEnd(relationName, conditionTree);
      
      ArrayList<Attribute> attributes = new ArrayList();
      
@@ -183,39 +192,58 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      
    }
    
-   public static void renamingQuery(String relationBeingRenamed, ArrayList<String> attributeNames) {
-       if (view.getRelationIndex(relationBeingRenamed) == -1) {
-           System.out.println("InvalidDBException: Relation Does not Exist");
-           return;
+   public static void renamingQuery(String attributesFromRelation, ArrayList<String> attributeNames) {
+     // check if relation exist in database
+     if (view.getRelationIndex(attributesFromRelation) == -1) {
+       System.out.println("InvalidDBException: Relation Does not Exist");
+       return;
+     }
+     
+     Relation relationFrom = view.getRelation(attributesFromRelation);
+     
+     // check to make sure there are the same number of attributes being renamed
+     if(attributeNames.size() > relationFrom.orderedAttributes.size()) {
+       System.out.println("InvalidDBException: Renaming more attributes then exist in relation");
+       return;
+     }
+     
+     ArrayList<Attribute> attributes = new ArrayList();
+     /* 3. The attribute names always come from the right operand */
+     for(int i=0; i < relationFrom.orderedAttributes.size(); i++) {
+       attributes.add(relationFrom.orderedAttributes.get(i));
+     }
+     
+     Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
+     String name = Integer.toString(queue.relations.size());
+     Relation relationTo = new Relation(name, attributeArray);
+     
+     // also need to copy the data into the new relation
+     for(int i=0; i < relationFrom.rows.size(); i++) {
+       relationTo.addRow(relationFrom.rows.get(i).toArray(new Literal[relationFrom.rows.get(i).size()]));
+     }
+     
+     // rename the attributes
+     for(int i=0; i < attributeNames.size(); i++) {
+       Attribute temp = new Attribute(attributeNames.get(i), attributes.get(i).domain);
+       attributes.set(i, temp);
+     }
+     relationTo.orderedAttributes = attributes;
+     
+     // rename teh attributes in each literal
+     for(int i=0; i < relationTo.rows.size(); i++) {
+       ArrayList<Literal> literalsTemp = new ArrayList();
+       
+       for(int j=0; j < relationTo.rows.get(i).size(); j++) {
+         Literal temp = new Literal(attributes.get(j), relationFrom.rows.get(i).get(j).literal);
+         literalsTemp.add(temp);
        }
-       
-       if (view.getRelation(relationBeingRenamed).orderedAttributes.size() < attributeNames.size()) {
-           System.out.println("InvalidDBException: Invalid number of relations");
-           return;
-       }
-       
-       String name = Integer.toString(queue.relations.size());       
-       Relation rename = view.getRelation(relationBeingRenamed);
-       rename.name = name;
-       
-       for(int k = 0; k < attributeNames.size(); k++){
-           rename.orderedAttributes.get(k).name = attributeNames.get(k);
-           if(k < rename.primaryKey.size()){
-               rename.primaryKey.get(k).name = attributeNames.get(k);
-           }
-           for(int j = 0; j < attributeNames.size(); j++){
-               try{
-                   rename.rows.get(k).get(k).attribute.name = attributeNames.get(k);                    
-               }
-               catch(NullPointerException e){
-       
-               }
-           }
-       }
-       
-       queue.addRelation(rename);
-       queue.testPrint();
-       System.out.println("Renaming Successful! \n");
+       relationTo.rows.set(i, literalsTemp);
+       literalsTemp = new ArrayList();
+     }
+     
+     // add relation to database
+     queue.addRelation(relationTo);
+     System.out.println("Renaming Successful! \n");
    }
    
    public static boolean unionCompatible(Relation lRelation, Relation rRelation) {
@@ -230,13 +258,11 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      /* 2. Union operations can only be performed if each column in A has the 
      * same type to its corresponding column in B. */
      for(int i = 0; i < lRelation.orderedAttributes.size(); i++) {
-       int firstTrue = 0;
+       int firstTrue = 1;
        
        if(!(lRelation.orderedAttributes.get(i).domain > 0 && rRelation.orderedAttributes.get(i).domain > 0)) {
-         return false;
+         firstTrue = 0;
        }
-       
-       firstTrue = 1;
        
        if(!(lRelation.orderedAttributes.get(i).domain == rRelation.orderedAttributes.get(i).domain)) {
          if(firstTrue !=1) { return false; }
@@ -454,6 +480,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 		try {
 			Relation toAdd = diskHandler.readDisk(toOpen);
 			view.addRelation(toAdd);
+      
+      view.delRelation("!!!");
 		}
 		catch(FileNotFoundException e){
 			System.err.println("FileNotFoundException: " + e.getMessage());
@@ -528,7 +556,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
         //If parameters are incomplete, print a message accordingly
     }
     
-    public static void updateCommand(String relationName, Attribute[] toUpdate, Literal[] toChange, String leftOp, String op, String rightOp) {
+    public static void updateCommand(String relationName, Attribute[] toUpdate, Literal[] toChange, ParseTree conditionTree) {
         //Updates the given relation, with only 1 attribute to be set to a literal
        //Updates tuples that satisfy a condition given
 	    if (view.getRelationIndex(relationName) == -1) {
@@ -552,7 +580,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
             
         }
         
-        ArrayList<ArrayList<Literal>> conditionMetRows = computeCondition(relationName, leftOp, op, rightOp);
+        ArrayList<ArrayList<Literal>> conditionMetRows = conditTopEnd(relationName, conditionTree);
         
         
         /*
@@ -642,7 +670,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
         }
         //Print appropriate message if either of the relations does not exist
     }
-    public static void deleteCommand(String relationName, String leftOp, String op, String RightOP) {
+    public static void deleteCommand(String relationName, ParseTree conditionTree) {
        //Deletes tuples from the relation given, taking out the tuples that satisfy the condition
        //given by the 3 strings
      // check if relation exist in database
@@ -651,7 +679,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        return;
      }
      
-     selectionQuery(relationName, leftOp, RightOP, op);
+     selectionQuery(relationName, conditionTree);
      
      String name = queue.relations.get(queue.relations.size()-1).name;
      Relation select = queue.getRelation(name);
@@ -672,307 +700,541 @@ import org.antlr.v4.runtime.ANTLRInputStream;
     }
     
     public static ArrayList<ArrayList<Literal>> conditTopEnd (String relationName, ParseTree conditionTree){
+       
+       /* 
+       The purpose of this method is to take a relation name and a condition parse tree
+       And traverse the parse tree to obtain an infix list of condition operands and operators,
+       Then utilize a stack structure to convert the list into postfix
+       And once the list is in postfix notation, evaluate it using the computeCondition method
+       ending up with a single ArrayList of rows that contains every row in the relation that
+       satisfies all conditions given
+       */
+       ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
+       
+       if (view.getRelationIndex(relationName) == -1) {
+      System.out.println("InvalidDBException: Relation Does not Exist");
+      return validTuples;
+         }
+       String connectLiteral = "";
+       List<ParseTree> children = getChildList(conditionTree);
+       List<String> conditionStrings = getLeafNodeList (children);
+       //Get a list of strings that is made up of all the leaf nodes
+      
+       //Create 4 Lists of strings:
+       //1 for the initially processed parsetree text
+       //1 for the infixed list consisting of operands (relation names of the temp relations holding the tuples that satisfy that condition)
+       //1 to keep track of the number of and names of the temporary condition tuple holding relations this method uses, so they can be deleted at the end
+       //1 to store the postfix list gotten from infixtopostfix method
+       List<String> properStrings = new LinkedList<String>();
+       List<String> infixedList = new LinkedList<String>();
+       List<String> tempRelNames = new LinkedList<String>();
+       List<String> postfixedList = new LinkedList<String>();
+       //End of List Initializations
+       
+       //Create integer tempRelCounter to keep track of how many temporary relations there are
+       int tempRelCounter = 0;
+       
+       
+       //Create an array of attributes to pass to every temporary relation made
+       ArrayList<Attribute> attributes = new ArrayList();
+       // add the attributes to the list 
+       for(int i =0; i < view.getRelation(relationName).orderedAttributes.size(); i++) {
+                attributes.add(view.getRelation(relationName).orderedAttributes.get(i));
+       }
+      Attribute[] attArray = attributes.toArray(new Attribute[attributes.size()]);
+      //End of attribute array generation
+      
+       //Begin properString creation loop
+       for (int i = 0; i < conditionStrings.size(); i++){
+          if (conditionStrings.get(i).equals("\"")){
+              connectLiteral = conditionStrings.get(i) + conditionStrings.get(i+1) + conditionStrings.get(i+2);
+              properStrings.add(connectLiteral);
+              i++;
+              i++;
+          }else{
+           properStrings.add(conditionStrings.get(i));
+                   }
+       }
+       //Above loop creates a new list with the string literals all together
+       
+       
+       //Below loop goes through properString list, creates a temporary relation for each comparison operator it finds, using the operands to the left and right of it
+       //properString consists entirely of comparison operators, comparison operands, and logical operators
+       for (int i =0; i < properStrings.size(); i++){
+           if (isLogicOperator(properStrings.get(i)) == true){
+               infixedList.add(properStrings.get(i));
+               //If current string is a logical operator, add it to infixList
+           } else
+               if (isCompOperator(properStrings.get(i)) == true)
+                 {
+                   //No need to worry about outOfBounds exception as thanks to our parser a comparison operator will always be surrounded by 2 operands
+                   ArrayList<ArrayList<Literal>> tempRows = computeCondition(relationName, properStrings.get(i-1),properStrings.get(i),properStrings.get(i+1));
+                   //Create rows for temporary relation by calling our computeCondition method, which will return an array of rows that contains every row satisfying that condition
+                   
+                   //Check for the error output of  the computeCondition method, in case one of the operands is invalid, and end this method if that's the case
+                  if (tempRows.get(0).get(0).attribute.name.equals("!!!")) {
+                         System.out.println("InvalidDBException: attributes did not match any in the relation \n");
+                         return tempRows;
+                      }
+                   //If it passes the error check, create new temporary relation in queue database with name C(temprelcounter)
+                   tempRelCounter++;
+                   String tempRelName = ("c" + tempRelCounter);
+                   Relation tempRel = new Relation(tempRelName,attArray);
+                   tempRel.rows = tempRows;
+                   queue.addRelation(tempRel);
+                   //Relation will contain the rows from computed condition
+                   tempRelNames.add(tempRelName);
+                   infixedList.add(tempRelName);
+                   //Pass the name of this new relation to the infixList to be used as an operand
+               }
+           
+       }
+       
+       /*
+       EVERYTHING UP TO HERE WORKS
+       */
+       
+       postfixedList = infixToPostfix(infixedList);
+       /*
+        CONVERT INFIX LIST TO POSTFIX
+       */
+       
+       /*
+         CODE TO PROCESS POSTFIX LIST AND GET FINAL RESULT IN POSTFIXCONDIT METHOD
+       */
+       
+       //If there was only one condition, simply return those tuples which satisfied it
+       if (tempRelCounter == 1){
+           validTuples = queue.getRelation(tempRelNames.get(0)).rows;
+           queue.delRelation(tempRelNames.get(0));
+       }else{
+       //If there were multiple conditions, move on to postfix method;
+           validTuples = postFixCondit(postfixedList);
+           for (int t = 0; t < tempRelCounter; t++){
+               queue.delRelation(tempRelNames.get(t));
+           }
+           
+       }
+       /*
+         ABOVE CODE TO DELETE ALL TEMP RELATIONS RIGHT BEFORE RETURNING 
+       */
+       return validTuples;
+       
+   }
+    
+   public static ArrayList<ArrayList<Literal>> postFixCondit (List<String> toEval){
+       //Method will iterate through postfix list
+       //And evaluate every operator with its corresponding operands
+       //Finally returning the result of every operation
+       ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
+       Stack<String> evalStack = new Stack<String>();
+       String curr = "";
+       String leftOp = "";
+       String rightOp = "";
+       for (int i =0; i < toEval.size(); i++){
+           curr = toEval.get(i);
+           if (isLogicOperator(curr)== false){
+               evalStack.push(curr);
+           }
+           if (isLogicOperator(curr) == true){
+               rightOp = evalStack.pop();
+               leftOp =  evalStack.pop();
+               
+               if (curr.equals("||")){
+                  //Perform a union query of left and right relations,
+                  //Assign the union query rows as the new rows for the relation with name = leftop
+                  //Push leftop back to the stack
+                  getFromBoth(leftOp,rightOp);
+                  //Once rows have been reassigned, delete the union query relation
+                  evalStack.push(leftOp);
+               }else if(curr.equals("&&")){
+                  //Compute the intersection of row values of left and right relations
+                  //Assign the intersection rows as the new rows for the relation with name = leftop
+                  //Push leftop back to the stack
+                   getIntersection(leftOp,rightOp);
+                   
+                   evalStack.push(leftOp);
+                   
+                   
+                   
+                   
+               }    
+           }     
+       }
+       curr = evalStack.pop();
+       validTuples = queue.getRelation(curr).rows;
+       return validTuples;
+   }
+   public static void getIntersection(String leftRel, String rightRel){
+       //From 2 temporary relations in the queue
+       //Returns the rows which are in both relations  
+    ArrayList<Literal> currRow = new ArrayList();   
+    ArrayList<ArrayList<Literal>> tuplesInCommon = new ArrayList();
+    //Check if either relation has no rows, because it would automatically mean the intersection is empty
+    if (queue.getRelation(leftRel).rows.size() == 0 || queue.getRelation(leftRel).rows.size() == 0){
+        queue.getRelation(leftRel).rows = tuplesInCommon;
+    }else {
+        for (int i = 0; i < queue.getRelation(rightRel).rows.size(); i++)
+            {
+               currRow = queue.getRelation(rightRel).rows.get(i);
         
-        /* 
-        The purpose of this method is to take a relation name and a condition parse tree
-        And traverse the parse tree to obtain an infix list of condition operands and operators,
-        Then utilize a stack structure to convert the list into postfix
-        And once the list is in postfix notation, evaluate it using the computeCondition method
-        ending up with a single ArrayList of rows that contains every row in the relation that
-        satisfies all conditions given
-        */
-        ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
+           for(int j = 0; j < queue.getRelation(leftRel).rows.size(); j++){
+               if (areRowsEqual(currRow,queue.getRelation(leftRel).rows.get(j))== true){
+                   tuplesInCommon.add(currRow);
+               }
+           }   
+         }
         
-        Stack<String> infixStack = new Stack<String>();
-        Stack<String> postfixStack = new Stack<String>();
-        
-        List<ParseTree> children = getChildList(conditionTree);
-        
-        List<String> conditionStrings = getLeafNodeList (children);
-        //Get a list of strings that is made up of all the leaf nodes
-        
-        //For loop should transform the infix list to a postfix list we can then evaluate
-        for (int i = 0; i < conditionStrings.size(); i++){
-            
-            
-            
+        //Method doesn't return anything, it simply sets the values of the left operand relation to the new computed ones
+        queue.getRelation(leftRel).rows = tuplesInCommon;
+        queue.getRelation(leftRel).testPrint();
+    }
+    
+    
+   }
+   public static void getFromBoth(String leftRel, String rightRel){
+    ArrayList<ArrayList<Literal>> tuplesInBoth = new ArrayList();
+    if(queue.getRelation(leftRel).rows.isEmpty()){
+        tuplesInBoth = queue.getRelation(rightRel).rows;
+       } else 
+        if(queue.getRelation(rightRel).rows.isEmpty()){
+            tuplesInBoth = queue.getRelation(leftRel).rows;
+           }else{
+           tuplesInBoth = queue.getRelation(leftRel).rows;
+           int initialLength = queue.getRelation(leftRel).rows.size();
+           ArrayList<Literal> currRow = new ArrayList();
+           for (int i = 0; i < queue.getRelation(rightRel).rows.size(); i++)
+           {
+               currRow = queue.getRelation(rightRel).rows.get(i);
+
+               for(int j = 0; j < initialLength; j++){
+                   if (areRowsEqual(tuplesInBoth.get(j),currRow) == true){
+                       break;
+                   }else if (j == initialLength -1){
+                       tuplesInBoth.add(currRow);
+                   } 
+               }   
+           }
         }
-        ArrayList<Attribute> attributes = new ArrayList();
-     
-            // add the attributes to the list 
-             for(int i =0; i < view.getRelation(relationName).orderedAttributes.size(); i++) {
-                 attributes.add(view.getRelation(relationName).orderedAttributes.get(i));
+    queue.getRelation(leftRel).rows = tuplesInBoth;
+    queue.getRelation(leftRel).testPrint();
+   }
+   public static List<String> infixToPostfix(List<String> toConvert){
+       /*
+       THIS METHOD CONVERTS AN INFIX LIST OF OPERATORS AND OPERANDS TO POSTFIX AS PER THE ALGORITH FOUND HERE:
+       https://www.geeksforgeeks.org/stack-set-2-infix-to-postfix/
+       */
+       List<String> postfixList = new LinkedList<String>();
+       String curr = "";
+       Stack<String> postStack = new Stack<String>();
+       String ridof = "";
+       for (int i = 0; i < toConvert.size(); i++){
+       curr = toConvert.get(i);
+           if (isLogicOperator(curr)==false){
+               postfixList.add(curr);
+           }else
+               if (curr.equals("(")){
+                   postStack.push(curr);
+               }else if( curr.equals(")")){
+                   while (!postStack.isEmpty() && !(postStack.peek().equals("("))){
+                       postfixList.add(postStack.pop());
+                   }
+                   if (!postStack.isEmpty() && !(postStack.peek().equals("("))){
+                       System.out.println("Invalid expression in infixtopostfixmethod");
+                   }else{
+                       postStack.pop();
+                   }  
+               }
+            else {
+                   while (!postStack.isEmpty() && hasHigherPrecedence(postStack.peek(),curr)){
+                       postfixList.add(postStack.pop());
+                   }
+                   postStack.push(curr);
                  }
-        
-       Attribute[] attributeArray = attributes.toArray(new Attribute[attributes.size()]);
+       }
+       while (!postStack.isEmpty()){
+           postfixList.add(postStack.pop());
+       }
        
-        Relation conditionRel = new Relation("conditCompute",attributeArray);
-        
-       
-        
-        
-        return validTuples;
-    }
-    public static boolean hasLowerPrecedence(String s1, String s2){
-        
-        
-        return false;
-    }
-    public static boolean isOperator(String s){
-        switch (s){
-            case "==":
-            case "<=":
-            case ">=":
-            case ">":
-            case "<":
-            case "!=":
-            case "(":
-            case ")":
-            case "||":
-            case "&&":
-                return true;
-            default:
-                break;
-        }
-        
-        return false;
-    }
-    
-    public static List<String> getLeafNodeList (List<ParseTree> toIterate) {
-        List<String> leafNodes = new LinkedList<String>();
-        List<ParseTree> recursChild = null;
-        boolean add = false;
-        for (ParseTree child:toIterate){
-             if (child.getChildCount() == 0) {
-                 leafNodes.add(child.getText());
-             }
-            
-            if (child.getChildCount() > 0) {
-                recursChild = getChildList(child);
-                add = leafNodes.addAll(getLeafNodeList(recursChild));
+       return postfixList;
+   } 
+   public static boolean hasHigherPrecedence(String s1, String s2){
+       // Method made to work with the above infixtopostfix algorithm
+       switch (s1){
+               
+           case "||":
+               return false;
+           case "&&":
+               return (s2.equals("||"));
+           
+           default:
+               return false;
+           
+           
+       }
+   }
+   public static boolean isCompOperator(String s){
+       //This method takes a string and determines if it is a comparison operator
+       switch (s){
+           case "==":
+           case "<=":
+           case ">=":
+           case ">":
+           case "<":
+           case "!=":
+               return true;
+           default:
+               break;
+       }
+       return false;
+   }
+   public static boolean isLogicOperator(String s){
+       //This method takes a string and determines if it is an && or || logic operator
+       switch (s){
+           case "&&":
+           case "||":
+           case "(":
+           case ")":
+               return true;
+           default:
+               break;
+       }
+       return false;
+   }
+   public static List<String> getLeafNodeList (List<ParseTree> toIterate) {
+       //This method generates a list of strings consisting of the inorder leaf nodes 
+       //of the parsetree input
+       List<String> leafNodes = new LinkedList<String>();
+       List<ParseTree> recursChild = null;
+       boolean add = false;
+       for (ParseTree child:toIterate){
+            if (child.getChildCount() == 0) {
+                leafNodes.add(child.getText());
             }
-             
-        }
-       return leafNodes;
-    }
-    public static List<ParseTree> getChildList (ParseTree toList){
-        List<ParseTree> childList = new LinkedList<ParseTree>();
-        for (int i = 0; i < toList.getChildCount(); i ++){
-            childList.add(toList.getChild(i));
-        }
-        
-        return childList;
-    }
-    
-    public static ArrayList<ArrayList<Literal>> computeCondition(String relationName, String leftOp, String operator, String rightOp){
-		//Will create a list of tuples 
-		
-		
-		//Create temporary relation from relationName
-		ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
-		Relation tempRel = view.getRelation(relationName);
-		int leftOpType = 0;
-		int rightOpType = 0;
-		boolean addThisTuple = false;
-		//Check that both operands are valid, and assign them a type
-		//Type 1 for Integer, Type 2 for String, Type 3 for attribute-name
-		if(isInteger(leftOp) == true){
-			leftOpType = 1;
-		}
-		else
-			if (isLiteral(leftOp) == true){
-				leftOpType = 2;
-				leftOp = leftOp.substring(1,leftOp.length()-1);
-		}
-		else {
-			for (int i = 0; i < tempRel.orderedAttributes.size(); i++){
-				if (leftOp.equals(tempRel.orderedAttributes.get(i).name)){
-					leftOpType = 3;
-					break;
-				}
-				if (i == (tempRel.orderedAttributes.size() - 1)){
-					ArrayList<Literal> errTuple = new ArrayList();
-					errTuple.add(new Literal(new Attribute("!!!",10),"!!!"));
-					validTuples.add(errTuple);
-					return validTuples;
-				}
-			}
-			
-		}	
-		if(isInteger(rightOp) == true){
-			rightOpType = 1;
-		}
-		else
-			if (isLiteral(rightOp) == true){
-				rightOpType = 2;
-				rightOp = rightOp.substring(1,rightOp.length()-1);
-				
-		}
-		else {
-			for (int i = 0; i < tempRel.orderedAttributes.size(); i++){
-				if (rightOp.equals(tempRel.orderedAttributes.get(i).name)){
-					rightOpType = 3;
-					break;
-				}
-				if (i == (tempRel.orderedAttributes.size() - 1)){
-					System.out.println("Invalid right operand! aborting comparison...");
-					ArrayList<Literal> errTuple = new ArrayList();
-					errTuple.add(new Literal(new Attribute("!!!",10),"!!!"));
-					validTuples.add(errTuple);
-					return validTuples;
-				}
-			}
-			
-		}	
-			
-		
-		for (int j = 0; j < tempRel.rows.size(); j++){	
-			addThisTuple = singleComparison(leftOp, operator, rightOp, leftOpType, rightOpType, tempRel.rows.get(j));
-			if (addThisTuple == true){
-				validTuples.add(tempRel.rows.get(j));
-			}
-				
-		}
-		return validTuples;
-	}
-	
-	public static boolean isInteger(String toCheck){
-		try {
-			int doesWork = Integer.parseInt(toCheck.trim());
-			return true;
-		}
-		catch (NumberFormatException nfe){
-			
-			
-		}
-		return false;
-	}
-	
-	public static boolean isLiteral(String toCheck){
-		if (toCheck.charAt(0) == '"' && toCheck.charAt(toCheck.length()-1) == '"')
-		{
-			return true;
-		}
-		return false;
-	}
-	public static boolean singleComparison (String leftOp, String operator, String rightOp, int leftOpType, int rightOpType, ArrayList<Literal> tupleToCheck){
-		//Perform a comparison on an individual tuple
-		int leftNum = 0;
-		int rightNum = 0;
-		if(leftOpType != 3 && rightOpType !=3 && leftOpType != rightOpType){
-			
-			return false;
-		}
-		//Return false if the operand types are incompatible
-		
-                
-                
-                //Find what kind of literal this attribute corresponds to
-                //If this function was called at all, it's because this attribute exists in the table 
-		if (leftOpType == 3) {
-			for (int i = 0; i < tupleToCheck.size(); i++){
-				if (leftOp.equals(tupleToCheck.get(i).attribute.name))
-				{
-					if (tupleToCheck.get(i).attribute.domain > 0){
-						leftOpType = 2;
-					}
-					else {
-						leftOpType = 1;
-					}
-					leftOp = tupleToCheck.get(i).literal;
-					
-		//Assign the operand a type depending on the attribute that was found			
-				}
-			}
-		}
-		//Find what kind of literal this attribute corresponds to
-                //If this function was called at all, it's because this attribute exists in the table 		
-			if (rightOpType == 3) {
-			for (int i = 0; i < tupleToCheck.size(); i++){
-				if (rightOp.equals(tupleToCheck.get(i).attribute.name))
-				{
-					if (tupleToCheck.get(i).attribute.domain > 0){
-						rightOpType = 2;
-					}
-					else {
-						rightOpType = 1;
-					}
-					rightOp = tupleToCheck.get(i).literal;
-					
-		//Assign the operand a type depending on the attribute that was found						
-				}
-			}
-			
-		}
-		
-		//Now check that the deciphered operand types are still compatible
-                //return false if they are not
-		if (rightOpType != leftOpType) {
-			return false;
-		}
-		
-		
-		//Now that both operands have been translated to literals, and it is
-                //confirmed that they are compatible, switch case structure performs
-                //the actual comparison based on the utilized operator
-		
-                
-                //Each case after == and != will check if either operator is a string, and return false if it is
-                
-		switch (operator){
-			case "==":
-					if (leftOp.equals(rightOp)){ return true;}
-				break;
-			case "!=":	
-					if (!(leftOp.equals(rightOp))){return true;}
-				break;
-				
-			case "<":
-				if(leftOpType == 2){return false;}
-				
-				try {
-					leftNum = Integer.parseInt(leftOp.trim());
-					rightNum = Integer.parseInt(rightOp.trim());
-					}
-				catch (NumberFormatException nfe){}
-				if(leftNum < rightNum){return true;}
-				
-				break;
-			
-			case ">":
-				if(leftOpType == 2){return false;}
-				try {
-					leftNum = Integer.parseInt(leftOp.trim());
-					rightNum = Integer.parseInt(rightOp.trim());
-					}
-				catch (NumberFormatException nfe){}
-				if(leftNum > rightNum){return true;}
-				break;
-				
-			case "<=":
-				if(leftOpType == 2){return false;}
-				try {
-					leftNum = Integer.parseInt(leftOp.trim());
-					rightNum = Integer.parseInt(rightOp.trim());
-					}
-				catch (NumberFormatException nfe){}
-				if(leftNum <= rightNum){return true;}
-				break;
-			case ">=":
-				if(leftOpType == 2){return false;}
-				try {
-					leftNum = Integer.parseInt(leftOp.trim());
-					rightNum = Integer.parseInt(rightOp.trim());
-					}
-				catch (NumberFormatException nfe){}
-				if(leftNum < rightNum){return true;}
-				break;
-			
-			
-			
-		}
-		return false;
-	}
+           
+           if (child.getChildCount() > 0) {
+               recursChild = getChildList(child);
+               add = leafNodes.addAll(getLeafNodeList(recursChild));
+           }
+            
+       }
+      return leafNodes;
+   }
+   public static List<ParseTree> getChildList (ParseTree toList){
+       List<ParseTree> childList = new LinkedList<ParseTree>();
+       for (int i = 0; i < toList.getChildCount(); i ++){
+           childList.add(toList.getChild(i));
+       }
+       
+       return childList;
+   }
+   public static ArrayList<ArrayList<Literal>> computeCondition(String relationName, String leftOp, String operator, String rightOp){
+   //Will create a list of tuples 
+   
+   
+   //Create temporary relation from relationName
+   ArrayList<ArrayList<Literal>> validTuples = new ArrayList();
+   Relation tempRel = view.getRelation(relationName);
+   int leftOpType = 0;
+   int rightOpType = 0;
+   boolean addThisTuple = false;
+   //Check that both operands are valid, and assign them a type
+   //Type 1 for Integer, Type 2 for String, Type 3 for attribute-name
+   if(isInteger(leftOp) == true){
+     leftOpType = 1;
+   }
+   else
+     if (isLiteral(leftOp) == true){
+       leftOpType = 2;
+       leftOp = leftOp.substring(1,leftOp.length()-1);
+   }
+   else {
+     for (int i = 0; i < tempRel.orderedAttributes.size(); i++){
+       if (leftOp.equals(tempRel.orderedAttributes.get(i).name)){
+         leftOpType = 3;
+         break;
+       }
+       if (i == (tempRel.orderedAttributes.size() - 1)){
+         ArrayList<Literal> errTuple = new ArrayList();
+         errTuple.add(new Literal(new Attribute("!!!",10),"!!!"));
+         validTuples.add(errTuple);
+         return validTuples;
+       }
+     }
+     
+   }	
+   if(isInteger(rightOp) == true){
+     rightOpType = 1;
+   }
+   else
+     if (isLiteral(rightOp) == true){
+       rightOpType = 2;
+       rightOp = rightOp.substring(1,rightOp.length()-1);
+       
+   }
+   else {
+     for (int i = 0; i < tempRel.orderedAttributes.size(); i++){
+       if (rightOp.equals(tempRel.orderedAttributes.get(i).name)){
+         rightOpType = 3;
+         break;
+       }
+       if (i == (tempRel.orderedAttributes.size() - 1)){
+         System.out.println("Invalid right operand! aborting comparison...");
+         ArrayList<Literal> errTuple = new ArrayList();
+         errTuple.add(new Literal(new Attribute("!!!",10),"!!!"));
+         validTuples.add(errTuple);
+         return validTuples;
+       }
+     }
+     
+   }	
+     
+   
+   for (int j = 0; j < tempRel.rows.size(); j++){	
+     addThisTuple = singleComparison(leftOp, operator, rightOp, leftOpType, rightOpType, tempRel.rows.get(j));
+     if (addThisTuple == true){
+       validTuples.add(tempRel.rows.get(j));
+     }
+       
+   }
+   return validTuples;
+ }
+   public static boolean isInteger(String toCheck){
+   try {
+     int doesWork = Integer.parseInt(toCheck.trim());
+     return true;
+   }
+   catch (NumberFormatException nfe){
+     
+     
+   }
+   return false;
+ }
+   public static boolean isLiteral(String toCheck){
+   if (toCheck.charAt(0) == '"' && toCheck.charAt(toCheck.length()-1) == '"')
+   {
+     return true;
+   }
+   return false;
+ }
+   public static boolean singleComparison (String leftOp, String operator, String rightOp, int leftOpType, int rightOpType, ArrayList<Literal> tupleToCheck){
+   //Perform a comparison on an individual tuple
+   int leftNum = 0;
+   int rightNum = 0;
+   if(leftOpType != 3 && rightOpType !=3 && leftOpType != rightOpType){
+     
+     return false;
+   }
+   //Return false if the operand types are incompatible
+   
+               
+               
+               //Find what kind of literal this attribute corresponds to
+               //If this function was called at all, it's because this attribute exists in the table 
+   if (leftOpType == 3) {
+     for (int i = 0; i < tupleToCheck.size(); i++){
+       if (leftOp.equals(tupleToCheck.get(i).attribute.name))
+       {
+         if (tupleToCheck.get(i).attribute.domain > 0){
+           leftOpType = 2;
+         }
+         else {
+           leftOpType = 1;
+         }
+         leftOp = tupleToCheck.get(i).literal;
+         
+   //Assign the operand a type depending on the attribute that was found			
+       }
+     }
+   }
+   //Find what kind of literal this attribute corresponds to
+               //If this function was called at all, it's because this attribute exists in the table 		
+     if (rightOpType == 3) {
+     for (int i = 0; i < tupleToCheck.size(); i++){
+       if (rightOp.equals(tupleToCheck.get(i).attribute.name))
+       {
+         if (tupleToCheck.get(i).attribute.domain > 0){
+           rightOpType = 2;
+         }
+         else {
+           rightOpType = 1;
+         }
+         rightOp = tupleToCheck.get(i).literal;
+         
+   //Assign the operand a type depending on the attribute that was found						
+       }
+     }
+     
+   }
+   
+   //Now check that the deciphered operand types are still compatible
+               //return false if they are not
+   if (rightOpType != leftOpType) {
+     return false;
+   }
+   
+   
+   //Now that both operands have been translated to literals, and it is
+               //confirmed that they are compatible, switch case structure performs
+               //the actual comparison based on the utilized operator
+   
+               
+               //Each case after == and != will check if either operator is a string, and return false if it is
+               
+   switch (operator){
+     case "==":
+         if (leftOp.equals(rightOp)){ return true;}
+       break;
+     case "!=":	
+         if (!(leftOp.equals(rightOp))){return true;}
+       break;
+       
+     case "<":
+       if(leftOpType == 2){return false;}
+       
+       try {
+         leftNum = Integer.parseInt(leftOp.trim());
+         rightNum = Integer.parseInt(rightOp.trim());
+         }
+       catch (NumberFormatException nfe){}
+       if(leftNum < rightNum){return true;}
+       
+       break;
+     
+     case ">":
+       if(leftOpType == 2){return false;}
+       try {
+         leftNum = Integer.parseInt(leftOp.trim());
+         rightNum = Integer.parseInt(rightOp.trim());
+         }
+       catch (NumberFormatException nfe){}
+       if(leftNum > rightNum){return true;}
+       break;
+       
+     case "<=":
+       if(leftOpType == 2){return false;}
+       try {
+         leftNum = Integer.parseInt(leftOp.trim());
+         rightNum = Integer.parseInt(rightOp.trim());
+         }
+       catch (NumberFormatException nfe){}
+       if(leftNum <= rightNum){return true;}
+       break;
+     case ">=":
+       if(leftOpType == 2){return false;}
+       try {
+         leftNum = Integer.parseInt(leftOp.trim());
+         rightNum = Integer.parseInt(rightOp.trim());
+         }
+       catch (NumberFormatException nfe){}
+       if(leftNum < rightNum){return true;}
+       break;
+     
+     
+     
+   }
+   return false;
+ }
    
    public static void main(String[] args) {
      
@@ -1115,40 +1377,40 @@ import org.antlr.v4.runtime.ANTLRInputStream;
      }
      
      if(testSelection == 1) {
-       System.out.println("Testing Selection... \n");
-       
-       Attribute[] samples = {new Attribute("big",10), new Attribute("large",10)};
-       String[] samplePrimaries = {"big", "large"};
-       
-       Relation relOne = new Relation("One", samples, samplePrimaries);
-       Relation relTwo = new Relation("Two", samples, samplePrimaries);
-       
-       Literal[] sampleOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
-       Literal[] sampleTwo = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
-       Literal[] sampleThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
-       Literal[] sampleFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("large",10),"canine")};
-       Literal[] sampleFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("large",10),"buzzer")}; 
-       Literal[] sampleSix = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
-       Literal[] sampleSeven = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
-       
-       relOne.addRow(sampleOne);
-       relOne.addRow(sampleTwo);
-       relOne.addRow(sampleThree);
-       relOne.addRow(sampleFour);
-       relOne.addRow(sampleFive);
-       relOne.addRow(sampleSix);
-       relOne.addRow(sampleSeven);
-       
-       view.addRelation(relOne);
-       
-       System.out.println("Testing select big == \"boss\" \n");
-       selectionQuery(relOne.name, "big", "\"boss\"", "==");
-       view.testPrint();
-       
-       System.out.println("Testing select big != \"bee\" \n");
-       view.delRelation("!!!select");
-       selectionQuery(relOne.name, "big", "\"bee\"", "!=");
-       view.testPrint();
+       // System.out.println("Testing Selection... \n");
+       // 
+       // Attribute[] samples = {new Attribute("big",10), new Attribute("large",10)};
+       // String[] samplePrimaries = {"big", "large"};
+       // 
+       // Relation relOne = new Relation("One", samples, samplePrimaries);
+       // Relation relTwo = new Relation("Two", samples, samplePrimaries);
+       // 
+       // Literal[] sampleOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       // Literal[] sampleTwo = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       // Literal[] sampleThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+       // Literal[] sampleFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("large",10),"canine")};
+       // Literal[] sampleFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("large",10),"buzzer")}; 
+       // Literal[] sampleSix = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+       // Literal[] sampleSeven = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+       // 
+       // relOne.addRow(sampleOne);
+       // relOne.addRow(sampleTwo);
+       // relOne.addRow(sampleThree);
+       // relOne.addRow(sampleFour);
+       // relOne.addRow(sampleFive);
+       // relOne.addRow(sampleSix);
+       // relOne.addRow(sampleSeven);
+       // 
+       // view.addRelation(relOne);
+       // 
+       // System.out.println("Testing select big == \"boss\" \n");
+       // selectionQuery(relOne.name, "big", "\"boss\"", "==");
+       // view.testPrint();
+       // 
+       // System.out.println("Testing select big != \"bee\" \n");
+       // view.delRelation("!!!select");
+       // selectionQuery(relOne.name, "big", "\"bee\"", "!=");
+       // view.testPrint();
      }
      
      if(testProjection == 1) {
@@ -1318,29 +1580,29 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        }
        
        if(testUpdateCommand == 1) {
-           Attribute[] updateSamples = {new Attribute("big",10), new Attribute("weight",0)};
-       String[] updatePrimaries = {"big", "weight"};
-       Relation updateRel = new Relation("updateMe", updateSamples, updatePrimaries );
-       Literal[] upOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("weight",0),"2")};
-       Literal[] upTwo = {new Literal(new Attribute("big",10),"tree"), new Literal(new Attribute("weight",0),"6")};
-       Literal[] upThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("weight",0),"3")};
-       Literal[] upFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("weight",0),"7")};
-       Literal[] upFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("weight",0),"2")};
-       
-       Literal[] updatedValues = {new Literal(new Attribute("big",10),"UPDATED"), new Literal(new Attribute("weight",0),"20")};
-       
-       updateRel.addRow(upOne);
-       updateRel.addRow(upTwo);
-       updateRel.addRow(upThree);
-       updateRel.addRow(upFour);
-       updateRel.addRow(upFive);
-       
-       view.addRelation(updateRel);
-       view.testPrint();
-       
-       updateCommand("updateMe",updateSamples, updatedValues, "big", "!=", "\"boss\"");
-       
-       view.testPrint();
+       //     Attribute[] updateSamples = {new Attribute("big",10), new Attribute("weight",0)};
+       // String[] updatePrimaries = {"big", "weight"};
+       // Relation updateRel = new Relation("updateMe", updateSamples, updatePrimaries );
+       // Literal[] upOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("weight",0),"2")};
+       // Literal[] upTwo = {new Literal(new Attribute("big",10),"tree"), new Literal(new Attribute("weight",0),"6")};
+       // Literal[] upThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("weight",0),"3")};
+       // Literal[] upFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("weight",0),"7")};
+       // Literal[] upFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("weight",0),"2")};
+       // 
+       // Literal[] updatedValues = {new Literal(new Attribute("big",10),"UPDATED"), new Literal(new Attribute("weight",0),"20")};
+       // 
+       // updateRel.addRow(upOne);
+       // updateRel.addRow(upTwo);
+       // updateRel.addRow(upThree);
+       // updateRel.addRow(upFour);
+       // updateRel.addRow(upFive);
+       // 
+       // view.addRelation(updateRel);
+       // view.testPrint();
+       // 
+       // updateCommand("updateMe",updateSamples, updatedValues, "big", "!=", "\"boss\"");
+       // 
+       // view.testPrint();
        
        }
        
@@ -1359,42 +1621,42 @@ import org.antlr.v4.runtime.ANTLRInputStream;
        
      
      
-     if(testDeleteCommand == 1) {
-       System.out.println("Testing Delete Command... \n");
-       
-       Attribute[] samples = {new Attribute("big",10), new Attribute("large",10)};
-       String[] samplePrimaries = {"big", "large"};
-       
-       Relation relOne = new Relation("One", samples, samplePrimaries);
-       Relation relTwo = new Relation("Two", samples, samplePrimaries);
-       
-       Literal[] sampleOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
-       Literal[] sampleTwo = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
-       Literal[] sampleThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
-       Literal[] sampleFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("large",10),"canine")};
-       Literal[] sampleFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("large",10),"buzzer")}; 
-       Literal[] sampleSix = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
-       Literal[] sampleSeven = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
-       
-       relOne.addRow(sampleOne);
-       relOne.addRow(sampleTwo);
-       relOne.addRow(sampleThree);
-       relOne.addRow(sampleFour);
-       relOne.addRow(sampleFive);
-       relOne.addRow(sampleSix);
-       relOne.addRow(sampleSeven);
-       
-       view.addRelation(relOne);
-       
-       System.out.println("Testing select big == \"boss\" \n");
-       deleteCommand(relOne.name, "big", "==", "\"boss\"");
-       view.testPrint();
-       
-       System.out.println("Testing select big != \"bee\" \n");
-       view.delRelation("!!!select");
-       deleteCommand(relOne.name, "big", "!=", "\"bee\"");
-       view.testPrint();
-     }
+     // if(testDeleteCommand == 1) {
+     //   System.out.println("Testing Delete Command... \n");
+     // 
+     //   Attribute[] samples = {new Attribute("big",10), new Attribute("large",10)};
+     //   String[] samplePrimaries = {"big", "large"};
+     // 
+     //   Relation relOne = new Relation("One", samples, samplePrimaries);
+     //   Relation relTwo = new Relation("Two", samples, samplePrimaries);
+     // 
+     //   Literal[] sampleOne = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+     //   Literal[] sampleTwo = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+     //   Literal[] sampleThree = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+     //   Literal[] sampleFour = {new Literal(new Attribute("big",10),"dog"), new Literal(new Attribute("large",10),"canine")};
+     //   Literal[] sampleFive = {new Literal(new Attribute("big",10),"bee"), new Literal(new Attribute("large",10),"buzzer")}; 
+     //   Literal[] sampleSix = {new Literal(new Attribute("big",10),"boss"), new Literal(new Attribute("large",10),"boy")};
+     //   Literal[] sampleSeven = {new Literal(new Attribute("big",10),"ball"), new Literal(new Attribute("large",10),"sphere")};
+     // 
+     //   relOne.addRow(sampleOne);
+     //   relOne.addRow(sampleTwo);
+     //   relOne.addRow(sampleThree);
+     //   relOne.addRow(sampleFour);
+     //   relOne.addRow(sampleFive);
+     //   relOne.addRow(sampleSix);
+     //   relOne.addRow(sampleSeven);
+     // 
+     //   view.addRelation(relOne);
+     // 
+     //   System.out.println("Testing select big == \"boss\" \n");
+     //   deleteCommand(relOne.name, "big", "==", "\"boss\"");
+     //   view.testPrint();
+     // 
+     //   System.out.println("Testing select big != \"bee\" \n");
+     //   view.delRelation("!!!select");
+     //   deleteCommand(relOne.name, "big", "!=", "\"bee\"");
+     //   view.testPrint();
+     // }
      
    }
    

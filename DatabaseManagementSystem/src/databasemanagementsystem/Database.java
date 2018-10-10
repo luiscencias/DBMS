@@ -36,7 +36,7 @@ public class Database{
 	// Deletes a relation by name.
 	public void delRelation(String relation_name){
 		for(int k = 0; k < relations.size(); k++){
-			if(relations.get(k).name == relation_name){
+			if(relations.get(k).name.equals(relation_name)){
 				relations.remove(k);
 				break;
 			}

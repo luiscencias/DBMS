@@ -116,13 +116,18 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       
       String rString;
       
-      // right operand
-      if(isInView(children.get(2).getText()) == 1) { 
-        rString = children.get(2).getText();
-      } else {
-        rString = engine.queue.relations.get(engine.queue.relations.size()-1).name;
-        engine.view.addRelation(engine.queue.getRelation(rString));
-        engine.queue.delRelation(rString);
+      try { 
+        // right operand
+        if(isInView(children.get(2).getText()) == 1) { 
+          rString = children.get(2).getText();
+        } else {
+          rString = engine.queue.relations.get(engine.queue.relations.size()-1).name;
+          engine.view.addRelation(engine.queue.getRelation(rString));
+          engine.queue.delRelation(rString);
+        }
+      } catch (Exception e) {
+        System.out.println("Error in Query...\n");
+        return;
       }
       
       try {
@@ -132,13 +137,42 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         return;
       }
       
-      // System.out.println("Exception cuaght?: " + canConvertInt(rString) + "\n");
+      //System.out.println("Exception cuaght?: " + canConvertInt(rString) + "\n");
       if(canConvertInt(rString) == 1) {
         engine.view.delRelation(rString);
       }
     }
     
-    @Override public void exitDeletecmd(DBMSGrammarParser.DeletecmdContext ctx) { }
+    @Override public void exitDeletecmd(DBMSGrammarParser.DeletecmdContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+        
+        ++counter;
+      }
+      
+      try {
+        engine.deleteCommand(children.get(1).getText(), children.get(3));
+      } catch (Exception e) {
+        System.out.println("Error in Command...\n");
+        return;
+      }
+    }
     
     @Override public void exitInsertcmd(DBMSGrammarParser.InsertcmdContext ctx) { 
       // get the root node's direct children
@@ -181,11 +215,11 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         
         try {
           engine.insertFromRelation(relName, rString);
+          if(canConvertInt(rString) == 1) { engine.view.delRelation(rString); }
         } catch (Exception e) {
           System.out.println("Error in Command...\n");
           return;
         }
-        engine.view.delRelation(rString);
         
       } else { // insert from list
         
@@ -227,7 +261,29 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       
     }
     
-    @Override public void exitUpdatecmd(DBMSGrammarParser.UpdatecmdContext ctx) { }
+    @Override public void exitUpdatecmd(DBMSGrammarParser.UpdatecmdContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+        
+        ++counter;
+      }
+    }
     
     @Override public void enterCreatecmd(DBMSGrammarParser.CreatecmdContext ctx) { 
       // get the root node's direct children
@@ -239,7 +295,7 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       // iterate through children
       int counter = 0;
       for (ParseTree child : children) {
-        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
         // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
         if (child.getChildCount() == 0) { continue; }
 
@@ -320,15 +376,106 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       
     }
     
-    @Override public void enterExitcmd(DBMSGrammarParser.ExitcmdContext ctx) { System.exit(0);}
+    @Override public void enterExitcmd(DBMSGrammarParser.ExitcmdContext ctx) { 
+      System.exit(0);
+    }
     
-    @Override public void enterWritecmd(DBMSGrammarParser.WritecmdContext ctx) { }
+    @Override public void enterWritecmd(DBMSGrammarParser.WritecmdContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+  
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+  
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+  
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+  
+        ++counter;
+      }
+      
+      try {
+        engine.writeCommand(children.get(1).getText());
+      } catch (Exception e) {
+        System.out.println("Error in Command...\n");
+        return;
+      }
+        
+    }
     
-    @Override public void exitClosecmd(DBMSGrammarParser.ClosecmdContext ctx) { }
+    @Override public void enterClosecmd(DBMSGrammarParser.ClosecmdContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+  
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+  
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+  
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+  
+        ++counter;
+      }
+      
+      try {
+        engine.closeCommand(children.get(1).getText());
+      } catch (Exception e) {
+        System.err.println("Error in Command...:\n");
+        return;
+      }
+    }
     
-    @Override public void enterClosecmd(DBMSGrammarParser.ClosecmdContext ctx) { }
-    
-    @Override public void enterOpencmd(DBMSGrammarParser.OpencmdContext ctx) { }
+    @Override public void enterOpencmd(DBMSGrammarParser.OpencmdContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+  
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+  
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+  
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+  
+        ++counter;
+      }
+      
+      try {
+        engine.openCommand(children.get(1).getText());
+      } catch (Exception e) {
+        System.err.println("Error in Command...:" + e.getMessage() + "\n");
+        return;
+      }
+    }
     
     @Override public void exitProduct(DBMSGrammarParser.ProductContext ctx) { 
       // get the root node's direct children
@@ -340,7 +487,7 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       // iterate through children
       int counter = 0;
       for (ParseTree child : children) {
-        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
         
         // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
         if (child.getChildCount() == 0) { continue; }
@@ -381,8 +528,8 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         System.out.println("Error in Query...\n");
         return;
       }
-      engine.view.delRelation(lString);
-      engine.view.delRelation(rString);
+      if(canConvertInt(lString) == 1) { engine.view.delRelation(lString); }
+      if(canConvertInt(rString) == 1) { engine.view.delRelation(rString); }
     }
     
     @Override public void exitDifference(DBMSGrammarParser.DifferenceContext ctx) { 
@@ -395,7 +542,7 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       // iterate through children
       int counter = 0;
       for (ParseTree child : children) {
-        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
         
         // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
         if (child.getChildCount() == 0) { continue; }
@@ -436,8 +583,8 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         System.out.println("Error in Query...\n");
         return;
       }
-      engine.view.delRelation(lString);
-      engine.view.delRelation(rString);
+      if(canConvertInt(lString) == 1) { engine.view.delRelation(lString); }
+      if(canConvertInt(rString) == 1) { engine.view.delRelation(rString); }
     }
     
     @Override public void exitUnion(DBMSGrammarParser.UnionContext ctx) { 
@@ -450,7 +597,7 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       // iterate through children
       int counter = 0;
       for (ParseTree child : children) {
-        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
         
         // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
         if (child.getChildCount() == 0) { continue; }
@@ -491,11 +638,58 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         System.out.println("Error in Query...\n");
         return;
       }
-      engine.view.delRelation(lString);
-      engine.view.delRelation(rString);
+      if(canConvertInt(lString) == 1) { engine.view.delRelation(lString); }
+      if(canConvertInt(rString) == 1) { engine.view.delRelation(rString); }
     }
     
-    @Override public void exitRenaming(DBMSGrammarParser.RenamingContext ctx) { }
+    @Override public void exitRenaming(DBMSGrammarParser.RenamingContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+
+        ++counter;
+      }
+      
+      String rString;
+      String[] attributes = children.get(2).getText().split(",");
+      ArrayList<String> attributeNames = new ArrayList();
+      for(int i = 0; i < attributes.length; i++) {
+        attributeNames.add(attributes[i]);
+      }
+      
+      // check right operand
+      if(isInView(children.get(4).getText()) == 1) { 
+        rString = children.get(4).getText();
+      } else {
+        rString = engine.queue.relations.get(engine.queue.relations.size()-1).name;
+        engine.view.addRelation(engine.queue.getRelation(rString));
+        engine.queue.delRelation(rString);
+      }
+      
+      try {
+        engine.renamingQuery(rString, attributeNames);
+      } catch (Exception e) {
+        System.out.println("Error in Query...\n");
+        return;
+      }
+      if(canConvertInt(rString) == 1) { engine.view.delRelation(rString); }
+    }
     
     @Override public void exitProjection(DBMSGrammarParser.ProjectionContext ctx) { 
       // get the root node's direct children
@@ -507,7 +701,7 @@ public class DBMSListener extends DBMSGrammarBaseListener {
       // iterate through children
       int counter = 0;
       for (ParseTree child : children) {
-        System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
         
         // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
         if (child.getChildCount() == 0) { continue; }
@@ -546,7 +740,7 @@ public class DBMSListener extends DBMSGrammarBaseListener {
         System.out.println("Error in Query...\n");
         return;
       }
-      engine.view.delRelation(relName);
+      if(canConvertInt(relName) == 1) { engine.view.delRelation(relName); }
     }
     
     @Override public void exitAtomicexpr(DBMSGrammarParser.AtomicexprContext ctx) { }
@@ -554,7 +748,45 @@ public class DBMSListener extends DBMSGrammarBaseListener {
     @Override public void enterAtomicexpr(DBMSGrammarParser.AtomicexprContext ctx) { }
     
     @Override public void exitSelection(DBMSGrammarParser.SelectionContext ctx) { 
+      // get the root node's direct children
+      List<ParseTree> children = ctx.children;
+      // instantiate parse tree values
+      ParseTree relationTree = null;
+      ParseTree conditionTree = null;	
+
+      // iterate through children
+      int counter = 0;
+      for (ParseTree child : children) {
+        //System.out.println("Child[" + counter + "]: " + child.getText() + "\n");
+        // skip child nodes with no children (e.g., CAPITALIZE, WHERE)
+        if (child.getChildCount() == 0) { continue; }
+
+        // get relation name's parse tree
+        if (counter == 0) { relationTree = child; }
+
+        // get condition's parse tree
+        else if (counter == 1) { conditionTree = child; }
+        
+        ++counter;
+      }
       
+      String rString;
+      // check right operand
+      if(isInView(children.get(4).getText()) == 1) { 
+        rString = children.get(4).getText();
+      } else {
+        rString = engine.queue.relations.get(engine.queue.relations.size()-1).name;
+        engine.view.addRelation(engine.queue.getRelation(rString));
+        engine.queue.delRelation(rString);
+      }
+      
+      try {
+        engine.selectionQuery(rString, children.get(2));
+        if(canConvertInt(rString) == 1) { engine.view.delRelation(rString); }
+      } catch (Exception e) {
+        System.out.println("Error in Command...\n");
+        return;
+      }
     }
     
     @Override public void exitCondition(DBMSGrammarParser.ConditionContext ctx) { 
