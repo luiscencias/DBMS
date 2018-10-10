@@ -318,11 +318,18 @@ public class DBMSListener extends DBMSGrammarBaseListener {
             }
             
             // build and add attribute
+            int x = 0;
             for(int i = 0; i < getInfo.orderedAttributes.size(); i++) {
               if(getInfo.orderedAttributes.get(i).name.equals(attribute)) {
                  attributeList.add(getInfo.orderedAttributes.get(i));
                  System.out.println("adding: " + attribute + " " + getInfo.orderedAttributes.get(i).name + " + ");
+              } else {
+                x++;
               }
+            }
+            if(x == getInfo.orderedAttributes.size()) { 
+              System.out.println("One or more relation names don't match aborting command...");
+              return;
             }
             
             // build and add literal
