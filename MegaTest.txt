@@ -19,7 +19,7 @@ SHOW standusers;
 SHOW standstats;
 
 userstats <- standusers + standstats;
-bestpower <- project(name) (select(power >= 5) userstats)&;
+bestpower <- project(name) (select(power >= 5) userstats);
 
 SHOW bestpower;
 SHOW worstdevelpoment;
